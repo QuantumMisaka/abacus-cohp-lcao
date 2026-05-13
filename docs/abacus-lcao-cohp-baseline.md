@@ -1,5 +1,13 @@
 # ABACUS LCAO-COHP 项目基础认知
 
+## 0. 项目来源与归属
+
+本仓库整理的 ABACUS LCAO-COHP 工作流来源于 deepmodeling/abacus-develop issue #3718：
+
+https://github.com/deepmodeling/abacus-develop/issues/3718
+
+ABACUS-LCAO-COHP 的实现与开发工作应归功于 GitHub 用户 `kirk0830`。本仓库不是对该方法实现原创性的声明，而是在其已有开发基础上，对核心脚本、使用方式、ABACUS 输出要求、端到端后处理流程和实际案例进行整理、封装与复现记录。
+
 ## 1. 方法定位
 
 COHP, Crystal Orbital Hamilton Population, 是一种能量分辨的化学键分析方法。它将能带能量中的局域轨道对贡献分解到原子对或轨道对上，用于判断某一能量区间的电子态对特定键是成键、反键还是近似非键。

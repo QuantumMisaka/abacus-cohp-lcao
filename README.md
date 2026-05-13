@@ -9,6 +9,19 @@ The implementation is intended for ABACUS numerical atomic orbital analysis. Its
 COHP values are ABACUS-NAO dependent and should not be assumed numerically
 equivalent to LOBSTER pCOHP.
 
+## Project Origin
+
+This repository is based on the ABACUS LCAO-COHP development discussed in
+deepmodeling/abacus-develop issue #3718:
+
+https://github.com/deepmodeling/abacus-develop/issues/3718
+
+The ABACUS-LCAO-COHP implementation and development work should be credited to
+the GitHub user `kirk0830`. This repository does not claim original authorship
+of that method implementation; it summarizes usage, packages the key scripts,
+and provides reproducible ABACUS LCAO post-processing examples built on that
+existing work.
+
 ## Contents
 
 - `src/read_abacus_out.py`: ABACUS output readers for `data-*-H/S`, `WFC_NAO_K*.txt`,
