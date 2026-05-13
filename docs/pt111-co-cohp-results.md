@@ -38,6 +38,8 @@
 
 ## COHP 数值摘要
 
+COHP 后处理使用 `src/cohp.py` 完成。脚本从 final SCF 的 `OUT.ABACUS` 中读取 `data-*-H/S`、`WFC_NAO_K*.txt`、`kpoints` 和 `running_scf.log`，并根据 `mapping.json` 中记录的 ABACUS 全局 NAO 轨道范围选择 top Pt 与 C 的轨道集合。总 Pt-C 曲线使用 top Pt 的全部 NAO 与 C 的全部 NAO；分通道曲线进一步选择 Pt-d/C-p 或 Pt-d/C-s 轨道子集。输出包括能量分辨 `.dat` 文件和采用 `-COHP` 习惯绘制的 `.png` 文件。
+
 | Setting | E_Fermi/eV | Pt-C/A | C-O/A | Channel | Spin | -ICOHP |
 |---|---:|---:|---:|---|---|---:|
 | nspin=1 | 1.768901 | 1.8479 | 1.1500 | top Pt-C total | sum | 0.058247 |
@@ -65,7 +67,6 @@
 
 ## 验证
 
-- `python -m py_compile refs/cohp.py refs/read_abacus_out.py scripts/pt111_co_workflow.py`
-- `python refs/read_abacus_out.py`
+- `python -m py_compile src/cohp.py src/read_abacus_out.py scripts/pt111_co_workflow.py`
+- `python src/read_abacus_out.py`
 - ABACUS final SCF 均生成 `data-*-H`、`data-*-S`、`WFC_NAO_K*.txt`、`kpoints`、`running_scf.log`。
-

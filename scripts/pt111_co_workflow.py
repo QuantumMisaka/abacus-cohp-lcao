@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "refs"))
+sys.path.insert(0, str(REPO_ROOT / "src"))
 
 import cohp  # noqa: E402
 

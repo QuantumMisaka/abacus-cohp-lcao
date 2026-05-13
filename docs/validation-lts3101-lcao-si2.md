@@ -48,10 +48,12 @@ E_Fermi = 7.111283804 eV
 
 ## COHP 后处理命令
 
+本项目的后处理入口是 `src/cohp.py`。它通过 `src/read_abacus_out.py` 读取 ABACUS LCAO SCF 输出目录中的 `data-*-H/S`、`WFC_NAO_K*.txt`、`kpoints` 和 `running_scf.log`，因此前置 SCF 必须打开 `out_mat_hs 1 8` 与 `out_wfc_lcao 1`。后处理阶段需要手动给出两个原子或轨道组对应的 ABACUS 全局 NAO 编号。
+
 Si2 示例中每个 Si 原子有 13 个 NAO，因此使用 0-12 与 13-25 作为 Si-Si 原子对轨道集合：
 
 ```bash
-env MPLBACKEND=Agg python refs/cohp.py \
+env MPLBACKEND=Agg python src/cohp.py \
   --out-dir runs/lts3101_lcao_si2/OUT.ABACUS \
   --atom-i-orbs 0,1,2,3,4,5,6,7,8,9,10,11,12 \
   --atom-j-orbs 13,14,15,16,17,18,19,20,21,22,23,24,25 \
@@ -83,4 +85,3 @@ integral up to E_Fermi = -0.0619846133
 当前 Python 脚本在补充 ABACUS 3.10.x 文本波函数格式兼容后，可以从实际 LCAO SCF 输出完成端到端 COHP 后处理，并输出曲线数据和图片。
 
 需要注意：该验证确认的是 ABACUS LCAO/NAO 表示下的 COHP-like 后处理链路可运行；它不构成与 LOBSTER pCOHP 数值一致性的证明。
-

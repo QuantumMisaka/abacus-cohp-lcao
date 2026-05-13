@@ -11,13 +11,42 @@ equivalent to LOBSTER pCOHP.
 
 ## Contents
 
-- `refs/read_abacus_out.py`: ABACUS output readers for `data-*-H/S`, `WFC_NAO_K*.txt`,
+- `src/read_abacus_out.py`: ABACUS output readers for `data-*-H/S`, `WFC_NAO_K*.txt`,
   `kpoints`, `running_scf.log`, and helper utilities.
-- `refs/cohp.py`: COHP/COOP and pCOHP-like post-processing routines plus a CLI.
+- `src/cohp.py`: COHP/COOP and pCOHP-like post-processing routines plus a CLI.
 - `scripts/pt111_co_workflow.py`: reproducible Pt(111)-CO example workflow for SAI
   Slurm + ABACUS LTS v3.10.1.
 - `docs/`: method notes, validation notes, and Pt(111)-CO result report.
 - `examples/`: lightweight result bundles for the two completed examples.
+
+The `src/` directory is the core COHP calculation layer. In normal use,
+`read_abacus_out.py` should not be called manually except for reader tests;
+`cohp.py` is the user-facing post-processing command.
+
+## Required ABACUS Output
+
+This workflow starts from a completed ABACUS LCAO SCF calculation, not from a
+plane-wave calculation. The SCF input must request the matrices and NAO
+wavefunctions needed by the post-processor:
+
+```text
+basis_type lcao
+out_mat_hs 1 8
+out_wfc_lcao 1
+```
+
+After SCF, the target `OUT.ABACUS` directory must contain:
+
+- `data-*-H` and `data-*-S`: Hamiltonian and overlap matrices for each k point.
+- `WFC_NAO_K*.txt` or `WFC_NAO_GAMMA*.txt`: LCAO eigenvectors in the ABACUS NAO basis.
+- `kpoints`: k-point weights.
+- `running_scf.log`: Fermi level and band information.
+
+The user must provide orbital-index lists for the two atoms or orbital groups to
+be analyzed. These indices are global NAO indices in the ABACUS basis order. For
+example, if atom A owns orbitals `0..12` and atom B owns orbitals `13..25`, the
+pair COHP is computed by passing those two lists to `--atom-i-orbs` and
+`--atom-j-orbs`.
 
 ## Minimal COHP Usage
 
@@ -32,7 +61,7 @@ Run on an ABACUS `OUT.ABACUS` directory containing:
 Example:
 
 ```bash
-env MPLBACKEND=Agg python refs/cohp.py \
+env MPLBACKEND=Agg python src/cohp.py \
   --out-dir /path/to/OUT.ABACUS \
   --atom-i-orbs 0,1,2,3 \
   --atom-j-orbs 13,14,15,16 \
@@ -43,20 +72,27 @@ env MPLBACKEND=Agg python refs/cohp.py \
   --output-prefix my_pair_COHP
 ```
 
+This command writes:
+
+- `my_pair_COHP.dat`: two-column energy and COHP data.
+- `my_pair_COHP.png`: plotted curve. With `--invert`, the figure follows the
+  common `-COHP` plotting convention where occupied bonding contributions appear
+  positive.
+
 For spin-polarized ABACUS outputs:
 
 ```bash
-python refs/cohp.py --out-dir /path/to/OUT.ABACUS \
+python src/cohp.py --out-dir /path/to/OUT.ABACUS \
   --atom-i-orbs 0,1,2 \
   --atom-j-orbs 100,101,102 \
   --spin up --output-prefix pair_up
 
-python refs/cohp.py --out-dir /path/to/OUT.ABACUS \
+python src/cohp.py --out-dir /path/to/OUT.ABACUS \
   --atom-i-orbs 0,1,2 \
   --atom-j-orbs 100,101,102 \
   --spin down --output-prefix pair_down
 
-python refs/cohp.py --out-dir /path/to/OUT.ABACUS \
+python src/cohp.py --out-dir /path/to/OUT.ABACUS \
   --atom-i-orbs 0,1,2 \
   --atom-j-orbs 100,101,102 \
   --spin sum --output-prefix pair_sum
@@ -115,7 +151,6 @@ See `docs/pt111-co-cohp-results.md` for the full interpretation.
 ## Development Checks
 
 ```bash
-python -m py_compile refs/cohp.py refs/read_abacus_out.py scripts/pt111_co_workflow.py
-python refs/read_abacus_out.py
+python -m py_compile src/cohp.py src/read_abacus_out.py scripts/pt111_co_workflow.py
+python src/read_abacus_out.py
 ```
-
