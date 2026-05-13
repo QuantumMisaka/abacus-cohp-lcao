@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import shutil
 import sys
 from dataclasses import dataclass
@@ -19,10 +20,10 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 import cohp  # noqa: E402
 
 
-PP_ORB = Path.home() / "PP_ORB"
-PP_DIR = PP_ORB / "PP"
-COMPACT_ORB_DIR = PP_ORB / "ORB"
-PRECISION_ORB_DIR = PP_ORB / "apns-orbitals-precision-v1"
+DATA_ROOT = REPO_ROOT / "examples" / "data"
+PP_DIR = DATA_ROOT / "PP"
+COMPACT_ORB_DIR = DATA_ROOT / "ORB"
+PRECISION_ORB_DIR = DATA_ROOT / "apns-orbitals-precision-v1"
 
 SPECIES = {
     "Pt": {
@@ -180,12 +181,14 @@ def write_stru(path: Path, cell: np.ndarray, atoms: list[AbacusAtom], basis: str
 
 
 def write_input(path: Path, nspin: int, calculation: str, basis_dir: Path, out_hs: bool) -> None:
+    pseudo_dir = os.path.relpath(PP_DIR, path.parent)
+    orbital_dir = os.path.relpath(basis_dir, path.parent)
     lines = [
         "INPUT_PARAMETERS",
         f"calculation {calculation}",
         "basis_type lcao",
-        f"pseudo_dir {PP_DIR}",
-        f"orbital_dir {basis_dir}",
+        f"pseudo_dir {pseudo_dir}",
+        f"orbital_dir {orbital_dir}",
         "ecutwfc 100",
         "device gpu",
         "ks_solver cusolver",

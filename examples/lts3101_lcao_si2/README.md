@@ -14,4 +14,7 @@ Included files:
 - `si_si_COHP.dat`: energy-resolved Si-Si COHP data.
 - `si_si_COHP.png`: plotted `-COHP` curve.
 
+Required pseudopotential and orbital files are included in
+`../data/legacy-si`, and `INPUT` points to that directory with relative paths.
+
 The heavy `OUT.ABACUS` directory is intentionally not included.

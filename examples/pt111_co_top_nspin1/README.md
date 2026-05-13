@@ -18,4 +18,8 @@ Included files:
 - `top_Pt_d_C_p_sum.*`: Pt-d / C-p component.
 - `top_Pt_d_C_s_sum.*`: Pt-d / C-s component.
 
+Required APNS files are included in `../data/PP`, `../data/ORB`, and
+`../data/apns-orbitals-precision-v1`; both `INPUT` files point to those
+directories with relative paths.
+
 The heavy `OUT.ABACUS` directory is intentionally not included.

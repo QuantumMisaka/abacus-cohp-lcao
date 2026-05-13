@@ -1,7 +1,7 @@
 INPUT_PARAMETERS
 #Parameters	(General)
-pseudo_dir /home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/abacus-develop/tests/PP_ORB
-orbital_dir /home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/abacus-develop/tests/PP_ORB
+pseudo_dir ../data/legacy-si
+orbital_dir ../data/legacy-si
 #Parameters (Accuracy)
 ecutwfc			 60 ###Energy cutoff needs to be tested to ensure your calculation is reliable.[1]
 scf_nmax		100

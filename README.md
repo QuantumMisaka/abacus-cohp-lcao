@@ -18,6 +18,8 @@ equivalent to LOBSTER pCOHP.
   Slurm + ABACUS LTS v3.10.1.
 - `docs/`: method notes, validation notes, and Pt(111)-CO result report.
 - `examples/`: lightweight result bundles for the two completed examples.
+- `examples/data/`: pseudopotentials and numerical orbitals required by the
+  bundled examples.
 
 The `src/` directory is the core COHP calculation layer. In normal use,
 `read_abacus_out.py` should not be called manually except for reader tests;
@@ -47,6 +49,28 @@ be analyzed. These indices are global NAO indices in the ABACUS basis order. For
 example, if atom A owns orbitals `0..12` and atom B owns orbitals `13..25`, the
 pair COHP is computed by passing those two lists to `--atom-i-orbs` and
 `--atom-j-orbs`.
+
+## Pseudopotentials and Orbitals
+
+The Pt(111)-CO example uses the ABACUS APNS PP/ORB library. The upstream dataset
+used for this repository is:
+
+```text
+https://store.aissquare.com/datasets/dc875646-a526-41f1-a180-d54b218fc80a/ABACUS-APNS-PPORBs-v1.zip
+```
+
+Only the files needed by the examples are included under `examples/data/`:
+
+- `examples/data/PP`: Pt, C, and O pseudopotentials.
+- `examples/data/ORB`: compact Pt, C, and O orbitals for relaxation.
+- `examples/data/apns-orbitals-precision-v1`: precision Pt, C, and O orbitals
+  for final SCF and COHP output.
+- `examples/data/legacy-si`: the Si pseudopotential and orbital used by the Si2
+  validation example.
+
+Example `INPUT` files use relative paths such as `../data/PP` and
+`../data/apns-orbitals-precision-v1`, so they can be run from their own example
+directories without relying on a user-specific `~/PP_ORB` location.
 
 ## Minimal COHP Usage
 

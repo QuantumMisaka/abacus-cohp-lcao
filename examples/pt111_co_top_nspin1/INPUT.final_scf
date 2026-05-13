@@ -1,8 +1,8 @@
 INPUT_PARAMETERS
 calculation scf
 basis_type lcao
-pseudo_dir /home/pku-jianghong/liuzhaoqing/PP_ORB/PP
-orbital_dir /home/pku-jianghong/liuzhaoqing/PP_ORB/apns-orbitals-precision-v1
+pseudo_dir ../data/PP
+orbital_dir ../data/apns-orbitals-precision-v1
 ecutwfc 100
 device gpu
 ks_solver cusolver

@@ -6,7 +6,8 @@
 - Slurm 模板参考：`/opt/sbatch_examples/gpu_abacus.sbatch`。
 - 实际作业设置：4V100 分区，单卡 GPU，`OMP_NUM_THREADS=8`，不使用 `mpirun`，`ks_solver cusolver`。
 - ASE 环境：`/home/pku-jianghong/liuzhaoqing/.conda/envs/ase/bin/python`，ASE `3.26.0b1`。
-- 赝势轨道库：`~/PP_ORB/PP`、`~/PP_ORB/ORB`、`~/PP_ORB/apns-orbitals-precision-v1`。
+- 赝势轨道库：ABACUS APNS PP/ORB library；本仓库复现实例使用 `examples/data/PP`、`examples/data/ORB`、`examples/data/apns-orbitals-precision-v1` 中的最小子集。
+- APNS 数据来源：`https://store.aissquare.com/datasets/dc875646-a526-41f1-a180-d54b218fc80a/ABACUS-APNS-PPORBs-v1.zip`。
 
 作业 ID：
 
@@ -20,8 +21,8 @@
 - 结构：Pt(111) 2x2 slab，4 层，共 16 个 Pt；top 位吸附 CO，共 18 原子。
 - 真空方向：ABACUS 晶胞 B 方向。
 - 约束：底两层 Pt 固定，其余 Pt、C、O 放开。
-- 优化基组：`~/PP_ORB/ORB`。
-- final SCF/COHP 基组：`~/PP_ORB/apns-orbitals-precision-v1`。
+- 优化基组：`examples/data/ORB`。
+- final SCF/COHP 基组：`examples/data/apns-orbitals-precision-v1`。
 - 关键参数：`force_thr_ev 0.03`、`relax_method bfgs_trad`、`smearing_method gaussian`、`smearing_sigma 0.004`、`mixing_beta 0.4`、`kspacing 0.14`。
 
 ## 输出位置

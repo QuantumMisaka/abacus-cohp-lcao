@@ -20,7 +20,7 @@ out_wfc_lcao 1
 out_app_flag 1
 ```
 
-并将 `pseudo_dir`、`orbital_dir` 改为工作区内 `abacus-develop/tests/PP_ORB` 的绝对路径。
+当前仓库复现实例已将 `pseudo_dir`、`orbital_dir` 改为 `../data/legacy-si` 相对路径，并在 `examples/data/legacy-si` 中保存该验证实际使用的 Si 赝势和轨道文件。
 
 ## ABACUS 输出
 

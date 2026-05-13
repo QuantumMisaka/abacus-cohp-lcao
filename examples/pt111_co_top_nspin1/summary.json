@@ -1,6 +1,6 @@
 {
   "nspin": 1,
-  "out_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin1/final_scf/OUT.ABACUS",
+  "out_dir": "final_scf/OUT.ABACUS (not included in lightweight example bundle)",
   "efermi_ev": 1.7689008808,
   "top_pt_c_distance_angstrom": 1.8478783367988845,
   "c_o_distance_angstrom": 1.1500018223656339,
