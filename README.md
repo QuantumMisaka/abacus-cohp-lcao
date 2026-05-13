@@ -5,6 +5,11 @@ It extracts Hamiltonian, overlap, wavefunction, eigenvalue, Fermi-level, and k-p
 weight information from ABACUS LCAO SCF outputs, then evaluates atom-pair or
 orbital-group COHP curves.
 
+This directory is the GitHub publication package for the local ABACUS-COHP
+working tree. In the original workspace, it is also exposed as the shortcut
+`abacus-cohp/abacus-cohp-lcao`, pointing to this standalone repository for
+release and sharing.
+
 The implementation is intended for ABACUS numerical atomic orbital analysis. Its
 COHP values are ABACUS-NAO dependent and should not be assumed numerically
 equivalent to LOBSTER pCOHP.
