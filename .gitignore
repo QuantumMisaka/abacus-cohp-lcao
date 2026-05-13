@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Heavy ABACUS outputs should stay outside the lightweight example bundle.
+OUT.*/
+OUT.ABACUS/
+data-*-H
+data-*-S
+WFC_NAO_K*.txt
+WFC_NAO_GAMMA*.txt
+*.cube
+*.csr
+ABACUS-CHARGE-DENSITY.restart
+nvdmon_job-*.log
+slurm-*.out
+slurm-*.err
+abacus.stdout
+abacus.stderr
+

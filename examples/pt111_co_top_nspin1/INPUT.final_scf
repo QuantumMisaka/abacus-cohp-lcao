@@ -1,0 +1,18 @@
+INPUT_PARAMETERS
+calculation scf
+basis_type lcao
+pseudo_dir /home/pku-jianghong/liuzhaoqing/PP_ORB/PP
+orbital_dir /home/pku-jianghong/liuzhaoqing/PP_ORB/apns-orbitals-precision-v1
+ecutwfc 100
+device gpu
+ks_solver cusolver
+nspin 1
+smearing_method gaussian
+smearing_sigma 0.004
+mixing_beta 0.4
+kspacing 0.14
+scf_thr 1e-7
+scf_nmax 120
+out_mat_hs 1 8
+out_wfc_lcao 1
+out_app_flag 1

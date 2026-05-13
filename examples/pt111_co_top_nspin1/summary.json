@@ -1,0 +1,41 @@
+{
+  "nspin": 1,
+  "out_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin1/final_scf/OUT.ABACUS",
+  "efermi_ev": 1.7689008808,
+  "top_pt_c_distance_angstrom": 1.8478783367988845,
+  "c_o_distance_angstrom": 1.1500018223656339,
+  "metrics": {
+    "top_Pt_C_total": {
+      "sum": {
+        "icohp": -0.058246749038386725,
+        "minus_icohp": 0.058246749038386725,
+        "min_cohp": -0.038434143657904485,
+        "max_cohp": 0.08413796586194346,
+        "points": 2384
+      }
+    },
+    "top_Pt_d_C_p": {
+      "sum": {
+        "icohp": -0.03862683628027643,
+        "minus_icohp": 0.03862683628027643,
+        "min_cohp": -0.03502314990214684,
+        "max_cohp": 0.03554631927726226,
+        "points": 2384
+      }
+    },
+    "top_Pt_d_C_s": {
+      "sum": {
+        "icohp": -0.013701291377398069,
+        "minus_icohp": 0.013701291377398069,
+        "min_cohp": -0.05218522927909432,
+        "max_cohp": 0.02051681301846273,
+        "points": 2384
+      }
+    }
+  },
+  "interpretation": [
+    "Use negative ICOHP in the native COHP sign convention as stronger occupied Pt-C bonding.",
+    "Compare nspin=1 and nspin=2 total Pt-C -ICOHP to judge whether spin polarization changes the Pt-C bond.",
+    "Compare Pt-d/C-p and Pt-d/C-s components to separate back-donation-like and donation-like contributions qualitatively."
+  ]
+}

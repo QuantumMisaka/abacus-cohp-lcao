@@ -1,0 +1,19 @@
+INPUT_PARAMETERS
+calculation relax
+basis_type lcao
+pseudo_dir /home/pku-jianghong/liuzhaoqing/PP_ORB/PP
+orbital_dir /home/pku-jianghong/liuzhaoqing/PP_ORB/ORB
+ecutwfc 100
+device gpu
+ks_solver cusolver
+nspin 1
+smearing_method gaussian
+smearing_sigma 0.004
+mixing_beta 0.4
+kspacing 0.14
+scf_thr 1e-7
+scf_nmax 120
+force_thr_ev 0.03
+relax_method bfgs_trad
+relax_nmax 80
+out_stru 1
