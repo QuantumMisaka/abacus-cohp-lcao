@@ -34,6 +34,9 @@ existing work.
 - `src/cohp.py`: COHP/COOP and pCOHP-like post-processing routines plus a CLI.
 - `scripts/pt111_co_workflow.py`: reproducible Pt(111)-CO example workflow for SAI
   Slurm + ABACUS LTS v3.10.1.
+- `scripts/diamond_abacus_pw_lobster_probe.py`: diagnostic workflow used to
+  test whether ABACUS PW outputs can be consumed by LOBSTER or converted to the
+  LOBSTER Generic interface.
 - `docs/quickstart-abacus-scf-to-cohp.md`: fast user guide for the ABACUS
   SCF -> `src/cohp.py` post-processing workflow.
 - `docs/`: method notes, validation notes, quick start guide, and Pt(111)-CO
@@ -218,6 +221,25 @@ Key result:
 - Pt-d/C-p contribution dominates the occupied Pt-C bonding contribution.
 
 See `docs/pt111-co-cohp-results.md` for the full interpretation.
+
+## ABACUS PW and LOBSTER Feasibility Note
+
+The report `docs/diamond-abacus-pw-lobster-feasibility.md` records a diamond
+test of ABACUS PW outputs against LOBSTER. The practical conclusion is:
+
+- LOBSTER does not directly recognize ABACUS PW outputs.
+- ABACUS `out_wfc_pw 2` can provide the plane-wave coefficients needed to build
+  a LOBSTER Generic-style package, but this is only an interface path.
+- LOBSTER's standard PW workflows require PAW pseudopotential data. QE itself
+  supports NC, US, and PAW pseudopotentials, but LOBSTER's QE interface expects
+  QE+PAW data rather than arbitrary QE PW output.
+- The APNS `C.upf` used in the ABACUS PW probe is norm-conserving, so it lacks
+  the PAW augmentation/projector/all-electron partial-wave data required for a
+  scientifically strict LOBSTER COHP calculation.
+
+This reinforces the intended scope of this repository: production use here is
+ABACUS LCAO SCF -> `src/cohp.py` post-processing. ABACUS PW -> LOBSTER would be
+a separate converter/exporter project with a consistent PAW data path.
 
 ## Development Checks
 

@@ -20,3 +20,13 @@ slurm-*.err
 abacus.stdout
 abacus.stderr
 
+# Heavy ABACUS PW / LOBSTER diagnostic outputs.
+runs/
+WAVEFUNC*.dat
+LOBSTER_Kpoints/
+LobsterInput.json
+lobsterout
+lobster.out
+lobster.err
+COHPCAR.lobster
+ICOHPLIST.lobster
