@@ -63,6 +63,7 @@ LOBSTER 的稳定性来自一整套投影定义和质量控制，而不仅是 CO
 - LCAO 基组 SCF：`basis_type lcao`
 - `out_mat_hs 1`: `OUT.${suffix}/data-${ik}-H` 与 `OUT.${suffix}/data-${ik}-S`
 - `out_wfc_lcao 1`: `OUT.${suffix}/WFC_NAO_K${ik}.txt` 或 `WFC_NAO_GAMMA${ik}.txt`
+- `out_app_flag 1`: 明确启用与 LCAO `H(k)`、`S(k)`、`wfc(k)` 输出相关的 app 风格输出开关，使实际生成的 SCF 输出与本项目 reader 的文件布局保持一致
 - k 点权重：优先读取 `OUT.${suffix}/kpoints`，缺失时可退化为等权
 - 费米能级：优先读取 `OUT.${suffix}/running_scf.log`
 
@@ -72,7 +73,10 @@ LOBSTER 的稳定性来自一整套投影定义和质量控制，而不仅是 CO
 basis_type lcao
 out_mat_hs 1 8
 out_wfc_lcao 1
+out_app_flag 1
 ```
+
+这里的四行应作为本项目 COHP 后处理的最小 ABACUS SCF 输出配置。此前只强调 `out_mat_hs 1 8` 和 `out_wfc_lcao 1` 不够完整；当前已经完成的 Si2、Pt(111)-CO、diamond 和 Ni(100)-CO 测试输入均包含 `out_app_flag 1`。
 
 完成 SCF 后，用户用 ABACUS 全局 NAO 轨道编号定义待分析的两个轨道集合。例如一个原子拥有轨道 `0-12`，另一个原子拥有轨道 `13-25`，则可执行：
 

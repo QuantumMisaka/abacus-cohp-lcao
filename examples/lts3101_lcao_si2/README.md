@@ -8,6 +8,15 @@ with `src/cohp.py` from an `OUT.ABACUS` directory containing `data-*-H/S`,
 `WFC_NAO_K*.txt`, `kpoints`, and `running_scf.log`. The selected orbital groups
 were Si atom 1 global NAO indices `0..12` and Si atom 2 indices `13..25`.
 
+The SCF `INPUT` includes the required COHP output block:
+
+```text
+basis_type lcao
+out_mat_hs 1 8
+out_wfc_lcao 1
+out_app_flag 1
+```
+
 Included files:
 
 - `INPUT`, `KPT`, `STRU`: calculation inputs used for the validation.

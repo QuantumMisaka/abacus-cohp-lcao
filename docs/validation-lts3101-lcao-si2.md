@@ -48,7 +48,7 @@ E_Fermi = 7.111283804 eV
 
 ## COHP 后处理命令
 
-本项目的后处理入口是 `src/cohp.py`。它通过 `src/read_abacus_out.py` 读取 ABACUS LCAO SCF 输出目录中的 `data-*-H/S`、`WFC_NAO_K*.txt`、`kpoints` 和 `running_scf.log`，因此前置 SCF 必须打开 `out_mat_hs 1 8` 与 `out_wfc_lcao 1`。后处理阶段需要手动给出两个原子或轨道组对应的 ABACUS 全局 NAO 编号。
+本项目的后处理入口是 `src/cohp.py`。它通过 `src/read_abacus_out.py` 读取 ABACUS LCAO SCF 输出目录中的 `data-*-H/S`、`WFC_NAO_K*.txt`、`kpoints` 和 `running_scf.log`，因此前置 SCF 必须打开 `out_mat_hs 1 8`、`out_wfc_lcao 1` 和 `out_app_flag 1`。后处理阶段需要手动给出两个原子或轨道组对应的 ABACUS 全局 NAO 编号。
 
 Si2 示例中每个 Si 原子有 13 个 NAO，因此使用 0-12 与 13-25 作为 Si-Si 原子对轨道集合：
 

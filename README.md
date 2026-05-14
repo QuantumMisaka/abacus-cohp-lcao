@@ -34,7 +34,10 @@ existing work.
 - `src/cohp.py`: COHP/COOP and pCOHP-like post-processing routines plus a CLI.
 - `scripts/pt111_co_workflow.py`: reproducible Pt(111)-CO example workflow for SAI
   Slurm + ABACUS LTS v3.10.1.
-- `docs/`: method notes, validation notes, and Pt(111)-CO result report.
+- `docs/quickstart-abacus-scf-to-cohp.md`: fast user guide for the ABACUS
+  SCF -> `src/cohp.py` post-processing workflow.
+- `docs/`: method notes, validation notes, quick start guide, and Pt(111)-CO
+  result report.
 - `examples/`: lightweight result bundles for the two completed examples.
 - `examples/data/`: pseudopotentials and numerical orbitals required by the
   bundled examples.
@@ -53,7 +56,21 @@ wavefunctions needed by the post-processor:
 basis_type lcao
 out_mat_hs 1 8
 out_wfc_lcao 1
+out_app_flag 1
 ```
+
+All four lines above should be treated as the minimal COHP-output block for this
+repository. The earlier documentation only emphasized `out_mat_hs 1 8` and
+`out_wfc_lcao 1`; the completed Si2, Pt(111)-CO, diamond, and Ni(100)-CO tests
+all used `out_app_flag 1` as well. ABACUS documents `out_app_flag` as the switch
+controlling append-style output for LCAO `H(k)`, `S(k)`, and `wfc(k)` matrix
+families together with `out_mat_hs` and `out_wfc_lcao`. Keeping it explicit makes
+the generated `OUT.ABACUS` layout match the reader expectations used here.
+
+Relevant ABACUS documentation:
+
+- `out_mat_hs`: https://abacus.deepmodeling.com/en/latest/advanced/elec_properties/hs_matrix.html
+- `out_wfc_lcao` and `out_app_flag`: https://abacus.deepmodeling.com/en/latest/advanced/input_files/input-main.html
 
 After SCF, the target `OUT.ABACUS` directory must contain:
 
@@ -67,6 +84,9 @@ be analyzed. These indices are global NAO indices in the ABACUS basis order. For
 example, if atom A owns orbitals `0..12` and atom B owns orbitals `13..25`, the
 pair COHP is computed by passing those two lists to `--atom-i-orbs` and
 `--atom-j-orbs`.
+
+For a complete first-run workflow, start from
+`docs/quickstart-abacus-scf-to-cohp.md`.
 
 ## Pseudopotentials and Orbitals
 
@@ -99,6 +119,15 @@ Run on an ABACUS `OUT.ABACUS` directory containing:
 - `WFC_NAO_K*.txt` or compatible text wavefunction files
 - `kpoints`
 - `running_scf.log`
+
+The corresponding SCF `INPUT` must include:
+
+```text
+basis_type lcao
+out_mat_hs 1 8
+out_wfc_lcao 1
+out_app_flag 1
+```
 
 Example:
 
