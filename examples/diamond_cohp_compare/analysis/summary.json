@@ -1,0 +1,125 @@
+{
+  "cohp": {
+    "abacus_all_nao_minus_icohp_ev": 0.057462925355554736,
+    "abacus_main_channel": "C(sp)-C(sp)",
+    "abacus_secondary_channel": "C(all)-C(all)",
+    "abacus_sp_sp_minus_icohp_ev": 0.0854997996011099,
+    "lobster_basis_used": "Bunge",
+    "lobster_minus_icohp_ev": 9.58942,
+    "lobster_nearest_c_c_length_angstrom": 1.5473618274539995
+  },
+  "comparison_boundary": [
+    "ABACUS result is a COHP-like quantity in the APNS NAO representation.",
+    "LOBSTER result is a projected pCOHP obtained from VASP PAW wavefunctions.",
+    "Energy alignment and occupied bonding trends are comparable; absolute values are not strictly equivalent observables.",
+    "ABACUS C(sp)-C(sp) is the primary comparison to LOBSTER includeOrbitals sp; ABACUS all-NAO is a secondary diagnostic for polarization effects."
+  ],
+  "curve_statistics": {
+    "abacus_all_nao": {
+      "occupied_integral": 0.057462925355554736,
+      "occupied_max": 0.021061190985371327,
+      "occupied_max_energy_ev": -18.077529999999943,
+      "occupied_min": -0.003814327903537723,
+      "occupied_min_energy_ev": -6.62752999999978,
+      "occupied_positive_fraction": 0.5963718820861678,
+      "unoccupied_max": 0.08801478815607118,
+      "unoccupied_max_energy_ev": 12.872470000000497,
+      "unoccupied_min": -0.45726332708514067,
+      "unoccupied_min_energy_ev": 11.072470000000472,
+      "unoccupied_negative_fraction": 0.889196675900277
+    },
+    "abacus_sp_sp": {
+      "occupied_integral": 0.0854997996011099,
+      "occupied_max": 0.020587454500417008,
+      "occupied_max_energy_ev": -18.077529999999943,
+      "occupied_min": -3.4525921660751834e-05,
+      "occupied_min_energy_ev": -4.327529999999747,
+      "occupied_positive_fraction": 0.9591836734693877,
+      "unoccupied_max": 0.064390151608032,
+      "unoccupied_max_energy_ev": 12.922470000000501,
+      "unoccupied_min": -0.4558785191756161,
+      "unoccupied_min_energy_ev": 11.072470000000472,
+      "unoccupied_negative_fraction": 0.6537396121883656
+    },
+    "lobster_main": {
+      "occupied_integral": 9.589433052565433,
+      "occupied_max": 1.4364288933280374,
+      "occupied_max_energy_ev": -11.127529999999844,
+      "occupied_min": 0.0,
+      "occupied_min_energy_ev": -22.02753,
+      "occupied_positive_fraction": 0.9705215419501134,
+      "unoccupied_max": 0.0,
+      "unoccupied_max_energy_ev": 0.022470000000314627,
+      "unoccupied_min": -2.3535502476986756,
+      "unoccupied_min_energy_ev": 14.172470000000516,
+      "unoccupied_negative_fraction": 0.6703601108033241
+    }
+  },
+  "electronic": {
+    "abacus_fermi_ev": 16.0839640303,
+    "abacus_gap_ev": 4.324575582824508,
+    "vasp_cbm_ev": 13.8989,
+    "vasp_fermi_ev": 9.668,
+    "vasp_gap_ev": 4.249599999999999,
+    "vasp_is_direct_gap": false,
+    "vasp_vbm_ev": 9.6493
+  },
+  "lobster_quality": {
+    "charge_spilling_percent": 0.98,
+    "lobster_result_dir": "examples/diamond_cohp_compare/lobster/bunge",
+    "pbeVaspFit2015_rerun_required": false
+  },
+  "outputs": {
+    "csv": "examples/diamond_cohp_compare/analysis/diamond_cohp_compare.csv",
+    "overlay_png": "examples/diamond_cohp_compare/analysis/diamond_cohp_overlay.png",
+    "report_md": "docs/diamond-abacus-vs-vasp-lobster-cohp.md",
+    "summary_json": "examples/diamond_cohp_compare/analysis/summary.json"
+  },
+  "qualitative_curve_comparison": {
+    "differences": [
+      "LOBSTER has a much larger absolute scale and an occupied -ICOHP of 9.58942 for one nearest-neighbor C-C interaction; the ABACUS NAO postprocessor gives 0.08550 for the sp-sp channel and 0.05746 for the all-NAO channel.",
+      "The LOBSTER occupied curve is positive over essentially the whole occupied window, while ABACUS C(sp)-C(sp) is nearly zero and slightly negative only close to the valence-band top.",
+      "The ABACUS all-NAO channel introduces more negative occupied-weight near the upper valence region than the sp-sp channel, indicating that the d-like polarization functions change the channel-resolved balance.",
+      "LOBSTER shows a broad, strongly negative unoccupied -pCOHP region from roughly 4 to 18 eV, whereas ABACUS has a sharper antibonding feature around 8 to 12 eV plus method-dependent positive/negative structure above 12 eV."
+    ],
+    "same_points": [
+      "After plotting -COHP/-pCOHP, the occupied C-C manifold is net positive in both workflows, so both identify occupied C-C states as overall bonding.",
+      "Both workflows show the main occupied bonding weight below the Fermi level and a reduction of bonding signal near E_F, consistent with insulating diamond.",
+      "Both workflows place substantial unoccupied antibonding character above E_F when the sign convention is -COHP/-pCOHP."
+    ]
+  },
+  "slurm_jobs": {
+    "abacus-relax": {
+      "job_id": 405374,
+      "run_dir": "examples/diamond_cohp_compare/abacus/relax",
+      "script": "run_abacus.sbatch"
+    },
+    "abacus-scf": {
+      "job_id": 408403,
+      "run_dir": "examples/diamond_cohp_compare/abacus/scf",
+      "script": "run_abacus.sbatch"
+    },
+    "lobster-bunge": {
+      "job_id": 408413,
+      "run_dir": "examples/diamond_cohp_compare/lobster/bunge",
+      "script": "run_lobster.sbatch"
+    },
+    "vasp-relax": {
+      "job_id": 405375,
+      "run_dir": "examples/diamond_cohp_compare/vasp/relax",
+      "script": "run_vasp.sbatch"
+    },
+    "vasp-scf": {
+      "job_id": 408404,
+      "run_dir": "examples/diamond_cohp_compare/vasp/scf",
+      "script": "run_vasp.sbatch"
+    }
+  },
+  "structure": {
+    "abacus_c_c_bond_length_angstrom": 1.5464272151804073,
+    "abacus_lattice_constant_angstrom": 3.5713207575521726,
+    "initial_lattice_constant_angstrom": 3.567,
+    "vasp_c_c_bond_length_angstrom": 1.5473618281107233,
+    "vasp_lattice_constant_angstrom": 3.5734790775686522
+  }
+}

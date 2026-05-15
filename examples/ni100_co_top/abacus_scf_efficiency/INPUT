@@ -1,0 +1,20 @@
+INPUT_PARAMETERS
+calculation scf
+basis_type lcao
+pseudo_dir ../../data/PP
+orbital_dir ../../data/ORB
+ecutwfc 100
+device gpu
+ks_solver cusolver
+nspin 2
+symmetry -1
+smearing_method gaussian
+smearing_sigma 0.004
+mixing_beta 0.4
+mixing_ndim 20
+scf_thr 1e-7
+scf_nmax 160
+kspacing 0.14
+out_mat_hs 1 8
+out_wfc_lcao 1
+out_app_flag 1

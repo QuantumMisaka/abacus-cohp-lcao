@@ -1,0 +1,17 @@
+INPUT_PARAMETERS
+calculation scf
+basis_type lcao
+pseudo_dir ../../data/PP
+orbital_dir ../../data/apns-orbitals-precision-v1
+ecutwfc 100
+scf_thr 1e-7
+scf_nmax 120
+mixing_beta 0.4
+device gpu
+ks_solver cusolver
+symmetry 0
+smearing_method gaussian
+smearing_sigma 0.004
+out_mat_hs 1 8
+out_wfc_lcao 1
+out_app_flag 1

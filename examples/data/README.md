@@ -5,13 +5,14 @@ needed by the bundled examples.
 
 ## APNS Source
 
-The Pt(111)-CO example uses files from the ABACUS APNS PP/ORB library:
+The Pt(111)-CO, diamond, and Ni(100)-CO examples use files from the ABACUS APNS
+PP/ORB library:
 
 https://store.aissquare.com/datasets/dc875646-a526-41f1-a180-d54b218fc80a/ABACUS-APNS-PPORBs-v1.zip
 
 Included APNS subsets:
 
-- `PP/`: PBE pseudopotentials for Pt, C, and O.
+- `PP/`: PBE pseudopotentials for Pt, Ni, C, and O.
 - `ORB/`: compact APNS orbitals used by the relaxation input.
 - `apns-orbitals-precision-v1/`: precision APNS orbitals used by final SCF and
   COHP post-processing.

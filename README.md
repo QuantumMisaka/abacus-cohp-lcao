@@ -39,8 +39,8 @@ existing work.
   LOBSTER Generic interface.
 - `docs/quickstart-abacus-scf-to-cohp.md`: fast user guide for the ABACUS
   SCF -> `src/cohp.py` post-processing workflow.
-- `docs/`: method notes, validation notes, quick start guide, and Pt(111)-CO
-  result report.
+- `docs/`: method notes, validation notes, quick start guide, Pt(111)-CO report,
+  diamond ABACUS-vs-LOBSTER report, and Ni(100)-CO ABACUS-vs-LOBSTER report.
 - `examples/`: lightweight result bundles for the two completed examples.
 - `examples/data/`: pseudopotentials and numerical orbitals required by the
   bundled examples.
@@ -103,9 +103,10 @@ https://store.aissquare.com/datasets/dc875646-a526-41f1-a180-d54b218fc80a/ABACUS
 Only the files needed by the examples are included under `examples/data/`:
 
 - `examples/data/PP`: Pt, C, and O pseudopotentials.
-- `examples/data/ORB`: compact Pt, C, and O orbitals for relaxation.
-- `examples/data/apns-orbitals-precision-v1`: precision Pt, C, and O orbitals
-  for final SCF and COHP output.
+- `examples/data/PP`: Pt, Ni, C, and O pseudopotentials.
+- `examples/data/ORB`: compact Pt, Ni, C, and O orbitals for relaxation.
+- `examples/data/apns-orbitals-precision-v1`: precision Pt, Ni, C, and O
+  orbitals for final SCF and COHP output.
 - `examples/data/legacy-si`: the Si pseudopotential and orbital used by the Si2
   validation example.
 
@@ -221,6 +222,31 @@ Key result:
 - Pt-d/C-p contribution dominates the occupied Pt-C bonding contribution.
 
 See `docs/pt111-co-cohp-results.md` for the full interpretation.
+
+### Diamond ABACUS vs VASP+LOBSTER
+
+Located in `examples/diamond_cohp_compare`.
+
+This example compares ABACUS LCAO-COHP with VASP+LOBSTER pCOHP for nearest
+neighbor C-C bonding in diamond. The bundled result demonstrates that the two
+methods agree qualitatively on occupied bonding and unoccupied antibonding
+features, while absolute integrated values are not on a common numerical scale.
+
+See `docs/diamond-abacus-vs-vasp-lobster-cohp.md`.
+
+### Ni(100)-CO Top Site
+
+Located in `examples/ni100_co_top`.
+
+This example compares spin-polarized ABACUS LCAO-COHP with VASP+LOBSTER for a
+Ni(100)-CO adsorption model. It includes efficiency and precision ABACUS orbital
+checks, VASP+LOBSTER processed reference curves, and a magnetism/comparability
+note. The robust chemical conclusions are the weak Ni-C adsorption bond, the
+strong C-O internal bond, and the lack of a transferable absolute ICOHP scale
+between ABACUS and LOBSTER.
+
+See `docs/ni100-co-abacus-vs-lobster-cohp.md` and
+`docs/ni100-co-magnetism-and-cohp-comparability-note.md`.
 
 ## ABACUS PW and LOBSTER Feasibility Note
 

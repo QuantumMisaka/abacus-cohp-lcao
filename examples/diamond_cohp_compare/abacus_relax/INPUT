@@ -1,0 +1,20 @@
+INPUT_PARAMETERS
+calculation cell-relax
+basis_type lcao
+pseudo_dir ../../data/PP
+orbital_dir ../../data/ORB
+ecutwfc 100
+scf_thr 1e-7
+scf_nmax 120
+mixing_beta 0.4
+device gpu
+ks_solver cusolver
+symmetry 0
+smearing_method gaussian
+smearing_sigma 0.004
+cal_stress 1
+force_thr_ev 0.01
+stress_thr 0.5
+relax_method bfgs_trad
+relax_nmax 80
+out_stru 1
