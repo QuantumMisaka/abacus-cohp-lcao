@@ -16,13 +16,15 @@ equivalent to LOBSTER pCOHP.
 
 ## Project Origin
 
+Project author: QuantumMisaka @PKU @Sidereus-AI @AISI
+
 This repository is based on the ABACUS LCAO-COHP development discussed in
 deepmodeling/abacus-develop issue #3718:
 
 https://github.com/deepmodeling/abacus-develop/issues/3718
 
 The ABACUS-LCAO-COHP implementation and development work should be credited to
-the GitHub user `kirk0830`. This repository does not claim original authorship
+the GitHub user @kirk0830. This repository does not claim original authorship
 of that method implementation; it summarizes usage, packages the key scripts,
 and provides reproducible ABACUS LCAO post-processing examples built on that
 existing work.
