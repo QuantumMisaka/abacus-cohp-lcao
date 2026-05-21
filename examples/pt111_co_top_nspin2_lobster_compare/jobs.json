@@ -1,0 +1,14 @@
+{
+  "jobs": {
+    "nspin2-lobster": {
+      "job_id": 440620,
+      "run_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/lobster/pbeVaspFit2015",
+      "script": "run_lobster.sbatch"
+    },
+    "nspin2-vasp-scf": {
+      "job_id": 440498,
+      "run_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/vasp_scf",
+      "script": "run_vasp.sbatch"
+    }
+  }
+}

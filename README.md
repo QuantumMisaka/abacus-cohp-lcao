@@ -42,7 +42,8 @@ existing work.
 - `docs/quickstart-abacus-scf-to-cohp.md`: fast user guide for the ABACUS
   SCF -> `src/cohp.py` post-processing workflow.
 - `docs/`: method notes, validation notes, quick start guide, Pt(111)-CO report,
-  diamond ABACUS-vs-LOBSTER report, and Ni(100)-CO ABACUS-vs-LOBSTER report.
+  Si2/Pt(111)-CO VASP+LOBSTER comparison reports, diamond ABACUS-vs-LOBSTER
+  report, and Ni(100)-CO ABACUS-vs-LOBSTER report.
 - `examples/`: lightweight result bundles for the two completed examples.
 - `examples/data/`: pseudopotentials and numerical orbitals required by the
   bundled examples.
@@ -212,6 +213,13 @@ Located in `examples/lts3101_lcao_si2`.
 This example confirms that ABACUS LTS 3.10.x LCAO SCF output can be processed
 from `data-*-H/S` and `WFC_NAO_K*.txt` into a Si-Si COHP curve.
 
+The `examples/lts3101_lcao_si2/lobster_compare` subdirectory contains the
+completed fixed-geometry VASP+LOBSTER comparison artifacts. The test used
+LOBSTER Bunge basis with 1.46% charge spilling and found consistent qualitative
+occupied Si-Si bonding, while absolute -ICOHP values remain method-scale
+dependent. See `docs/si2-abacus-vs-vasp-lobster-cohp.md` and
+`docs/vasp-lobster-case-tests-summary.md`.
+
 ### Pt(111)-CO Top Site, nspin=1
 
 Located in `examples/pt111_co_top_nspin1`.
@@ -224,6 +232,20 @@ Key result:
 - Pt-d/C-p contribution dominates the occupied Pt-C bonding contribution.
 
 See `docs/pt111-co-cohp-results.md` for the full interpretation.
+
+### Pt(111)-CO Top Site, nspin=2 VASP+LOBSTER Comparison
+
+Located in `examples/pt111_co_top_nspin2_lobster_compare`.
+
+This bundle contains the completed fixed-geometry VASP+LOBSTER comparison
+artifacts for the spin-polarized Pt(111)-CO top-site model. The test used
+LOBSTER `pbeVaspFit2015` basis with 2.38% charge spilling. ABACUS and LOBSTER
+agree qualitatively on occupied bonding for both Pt-C and C-O channels, while
+absolute -ICOHP scales differ strongly and should not be compared directly
+without normalization.
+
+See `docs/pt111-co-abacus-vs-lobster-cohp.md` and
+`docs/vasp-lobster-case-tests-summary.md`.
 
 ### Diamond ABACUS vs VASP+LOBSTER
 

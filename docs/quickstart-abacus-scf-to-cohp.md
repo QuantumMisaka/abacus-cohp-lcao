@@ -135,6 +135,11 @@ but method-dependent absolute ICOHP scales.
 - `examples/lts3101_lcao_si2`: minimal Si-Si validation result.
 - `examples/pt111_co_top_nspin1`: Pt(111)-CO top-site result with total Pt-C and
   Pt-d/C-p channel examples.
+- `examples/lts3101_lcao_si2/lobster_compare`: Si2 ABACUS LCAO-COHP vs
+  fixed-geometry VASP+LOBSTER comparison artifacts.
+- `examples/pt111_co_top_nspin2_lobster_compare`: spin-polarized Pt(111)-CO
+  top-site ABACUS LCAO-COHP vs fixed-geometry VASP+LOBSTER comparison artifacts.
 
-Both examples include the final ABACUS input files and lightweight COHP outputs.
-The heavy `OUT.ABACUS` runtime directories are intentionally excluded.
+The bundled examples include final ABACUS input files, lightweight COHP outputs,
+and selected VASP+LOBSTER comparison summaries. Heavy `OUT.ABACUS`,
+VASP, and LOBSTER runtime directories are intentionally excluded.

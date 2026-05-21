@@ -1,0 +1,14 @@
+{
+  "jobs": {
+    "lobster-bunge": {
+      "job_id": 440568,
+      "run_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/lts3101_lcao_si2/lobster/bunge",
+      "script": "run_lobster.sbatch"
+    },
+    "vasp-scf": {
+      "job_id": 440499,
+      "run_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/lts3101_lcao_si2/vasp_scf",
+      "script": "run_vasp.sbatch"
+    }
+  }
+}

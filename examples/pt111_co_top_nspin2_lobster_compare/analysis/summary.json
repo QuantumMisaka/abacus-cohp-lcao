@@ -1,0 +1,117 @@
+{
+  "abacus_out_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/final_scf/OUT.ABACUS",
+  "comparisons": {
+    "C-O_total": {
+      "abacus_common_window_minus_icohp": 0.1897054763920079,
+      "abacus_existing_report_minus_icohp": null,
+      "abacus_full_window_minus_icohp": 0.48054637091269803,
+      "curve_statistics": {
+        "ABACUS C-O_total": {
+          "occupied_integral": 0.1897054763920079,
+          "occupied_max": 0.3849554312334478,
+          "occupied_max_energy_ev": -6.980079999999928,
+          "occupied_min": -0.0646241760970276,
+          "occupied_min_energy_ev": -10.330079999999976,
+          "occupied_positive_fraction": 0.4190871369294606,
+          "unoccupied_max": -0.005780934223621276,
+          "unoccupied_max_energy_ev": 0.019920000000171356,
+          "unoccupied_min": -0.1797106826426047,
+          "unoccupied_min_energy_ev": 3.3199200000002183,
+          "unoccupied_negative_fraction": 1.0
+        },
+        "LOBSTER C-O_total": {
+          "occupied_integral": 6.021733894320956,
+          "occupied_max": 19.49833697985221,
+          "occupied_max_energy_ev": -6.930079999999927,
+          "occupied_min": -1.1386725034909042,
+          "occupied_min_energy_ev": -7.680079999999938,
+          "occupied_positive_fraction": 0.3651452282157676,
+          "unoccupied_max": 0.0,
+          "unoccupied_max_energy_ev": 6.469920000000263,
+          "unoccupied_min": -8.003745391979828,
+          "unoccupied_min_energy_ev": 5.019920000000242,
+          "unoccupied_negative_fraction": 0.8012422360248447
+        }
+      },
+      "lobster_minus_icohp": 18.102809999999998,
+      "lobster_pair_label": "2",
+      "lobster_pair_length_angstrom": 1.150004309800649,
+      "lobster_to_common_window_abacus_icohp_ratio": 95.42586932278277,
+      "lobster_to_reference_abacus_icohp_ratio": 37.671307278041596,
+      "normalized": {
+        "best_fit_scale": 0.019123434208,
+        "normalized_rmse": 0.630762760643,
+        "pearson": 0.766803634168,
+        "points": 402
+      }
+    },
+    "Pt-C_total": {
+      "abacus_common_window_minus_icohp": 0.07985334839715069,
+      "abacus_existing_report_minus_icohp": 0.11649766187219837,
+      "abacus_full_window_minus_icohp": 0.11649766187219832,
+      "curve_statistics": {
+        "ABACUS Pt-C_total": {
+          "occupied_integral": 0.07985334839715069,
+          "occupied_max": 0.06665759827341479,
+          "occupied_max_energy_ev": -10.330079999999976,
+          "occupied_min": -0.010762533281185167,
+          "occupied_min_energy_ev": -0.030079999999829354,
+          "occupied_positive_fraction": 0.47717842323651455,
+          "unoccupied_max": 0.08009662966823357,
+          "unoccupied_max_energy_ev": 7.569920000000279,
+          "unoccupied_min": -0.16795988724980737,
+          "unoccupied_min_energy_ev": 3.0699200000002147,
+          "unoccupied_negative_fraction": 0.8944099378881988
+        },
+        "LOBSTER Pt-C_total": {
+          "occupied_integral": 4.751509285998496,
+          "occupied_max": 8.60974582202749,
+          "occupied_max_energy_ev": -10.280079999999975,
+          "occupied_min": -0.510585529623191,
+          "occupied_min_energy_ev": -0.030079999999829354,
+          "occupied_positive_fraction": 0.3983402489626556,
+          "unoccupied_max": 0.0,
+          "unoccupied_max_energy_ev": 6.319920000000261,
+          "unoccupied_min": -1.9905783778929174,
+          "unoccupied_min_energy_ev": 3.1199200000002154,
+          "unoccupied_negative_fraction": 0.782608695652174
+        }
+      },
+      "lobster_minus_icohp": 4.81204,
+      "lobster_pair_label": "1",
+      "lobster_pair_length_angstrom": 1.8479007232842302,
+      "lobster_to_common_window_abacus_icohp_ratio": 60.26096709266736,
+      "lobster_to_reference_abacus_icohp_ratio": 41.30589337731911,
+      "normalized": {
+        "best_fit_scale": 0.024720222091,
+        "normalized_rmse": 0.831035461791,
+        "pearson": 0.598225960914,
+        "points": 402
+      }
+    }
+  },
+  "jobs": {
+    "nspin2-lobster": {
+      "job_id": 440620,
+      "run_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/lobster/pbeVaspFit2015",
+      "script": "run_lobster.sbatch"
+    },
+    "nspin2-vasp-scf": {
+      "job_id": 440498,
+      "run_dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/vasp_scf",
+      "script": "run_vasp.sbatch"
+    }
+  },
+  "lobster": {
+    "basis": "pbeVaspFit2015",
+    "dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/lobster/pbeVaspFit2015",
+    "spilling": {
+      "charge_spilling_percent": 2.38
+    }
+  },
+  "outputs": {
+    "csv": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/analysis/pt111_cohp_compare.csv",
+    "report": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/docs/pt111-co-abacus-vs-lobster-cohp.md",
+    "summary": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/pt111_co_top/nspin2/analysis/summary.json"
+  }
+}

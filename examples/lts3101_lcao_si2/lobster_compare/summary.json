@@ -1,0 +1,60 @@
+{
+  "abacus": {
+    "common_window_minus_icohp": 0.040357800381599224,
+    "efermi_ev": 7.111283804,
+    "existing_validation_minus_icohp": 0.06198461330654695
+  },
+  "curve_statistics": {
+    "ABACUS Si-Si": {
+      "occupied_integral": 0.040357800381599224,
+      "occupied_max": 0.030119237323139123,
+      "occupied_max_energy_ev": -9.670029999999967,
+      "occupied_min": -0.006862437714478795,
+      "occupied_min_energy_ev": -1.2700299999998474,
+      "occupied_positive_fraction": 0.5643153526970954,
+      "unoccupied_max": 0.005820074889452007,
+      "unoccupied_max_energy_ev": 17.529970000000418,
+      "unoccupied_min": -0.12687996658905065,
+      "unoccupied_min_energy_ev": 13.579970000000364,
+      "unoccupied_negative_fraction": 0.9141274238227147
+    },
+    "LOBSTER Si-Si": {
+      "occupied_integral": 4.622243621158532,
+      "occupied_max": 1.3279742132591363,
+      "occupied_max_energy_ev": -3.7200299999998823,
+      "occupied_min": -0.0,
+      "occupied_min_energy_ev": -12.02003,
+      "occupied_positive_fraction": 0.995850622406639,
+      "unoccupied_max": 4.818690095805666e-05,
+      "unoccupied_max_energy_ev": 0.029970000000171026,
+      "unoccupied_min": -2.064552472043554,
+      "unoccupied_min_energy_ev": 4.479970000000234,
+      "unoccupied_negative_fraction": 0.5346260387811634
+    }
+  },
+  "lobster": {
+    "basis": "Bunge",
+    "dir": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/lts3101_lcao_si2/lobster/bunge",
+    "length_angstrom": 2.3372326295035477,
+    "minus_icohp": 4.62233,
+    "spilling": {
+      "charge_spilling_percent": 1.46
+    }
+  },
+  "outputs": {
+    "csv": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/lts3101_lcao_si2/analysis/si2_cohp_compare.csv",
+    "normalized_overlay": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/lts3101_lcao_si2/analysis/si2_si_si_minus_cohp_normalized_overlay.png",
+    "overlay": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/runs/lts3101_lcao_si2/analysis/si2_si_si_minus_cohp_overlay.png",
+    "report": "/home/pku-jianghong/liuzhaoqing/work/sidereus/abacus-cohp/docs/si2-abacus-vs-vasp-lobster-cohp.md"
+  },
+  "quantitative": {
+    "lobster_to_common_window_abacus_icohp_ratio": 114.53374456224105,
+    "lobster_to_existing_abacus_icohp_ratio": 74.5722164489454,
+    "normalized": {
+      "best_fit_scale": 0.037245691926,
+      "normalized_rmse": 0.866087917798,
+      "pearson": 0.585982065981,
+      "points": 602
+    }
+  }
+}
