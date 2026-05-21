@@ -14,6 +14,25 @@ The implementation is intended for ABACUS numerical atomic orbital analysis. Its
 COHP values are ABACUS-NAO dependent and should not be assumed numerically
 equivalent to LOBSTER pCOHP.
 
+## ABACUS COHP Versus LOBSTER COHP
+
+The completed Si2, Pt(111)-CO, diamond, and Ni(100)-CO tests support the same
+practical conclusion:
+
+- Implementation: ABACUS COHP uses native ABACUS LCAO/NAO Hamiltonian, overlap,
+  and NAO wavefunctions. LOBSTER uses VASP PAW plane-wave results projected onto
+  local orbitals, so it depends on WAVECAR/CHGCAR, projection basis choice, and
+  spilling quality.
+- Test behavior: both approaches give consistent qualitative bonding/antibonding
+  assignments and chemical trends for Si-Si, C-C, Pt-C, Ni-C, and C-O channels.
+  Their absolute `-ICOHP` values are not on a shared scale; LOBSTER values are
+  typically tens to more than one hundred times larger than the current ABACUS
+  NAO-COHP values in these tests.
+- Scientific use: ABACUS COHP is useful for bond-trend, orbital-channel, and
+  occupied/unoccupied bonding analysis within a fixed ABACUS setup. The reliable
+  ABACUS-vs-LOBSTER comparison is sign, relative trend, and normalized curve
+  shape, not direct equality of absolute `-ICOHP`.
+
 ## Project Origin
 
 Project author: QuantumMisaka @PKU @Sidereus-AI @AISI
