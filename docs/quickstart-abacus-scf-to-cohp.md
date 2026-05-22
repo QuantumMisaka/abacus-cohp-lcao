@@ -130,7 +130,37 @@ Do not assume that ABACUS LCAO-COHP values are numerically identical to LOBSTER
 pCOHP values. Tests in this project show consistent qualitative bonding trends
 but method-dependent absolute ICOHP scales.
 
-## 6. Working Examples
+## 6. LOBSTER-like Empirical Scale
+
+After generating a two-column `.dat` curve with `src/cohp.py`, users who want a
+LOBSTER-like reading magnitude can apply the benchmark scale helper:
+
+```bash
+python scripts/scale_abacus_cohp_to_lobster.py si_si_COHP.dat \
+  --preset Si-Si \
+  --efermi 7.111283804 \
+  --output-prefix si_si_lobster_like
+```
+
+For a file whose second column is already `-COHP` on an `E-E_F` axis:
+
+```bash
+python scripts/scale_abacus_cohp_to_lobster.py pair_minus_cohp.dat \
+  --preset Pt-C \
+  --input-convention minus-cohp \
+  --efermi 0.0
+```
+
+Use `--list-presets` to inspect available channels. The script writes:
+
+- `*_lobster_like.dat`: `energy_ev source_value minus_cohp lobster_like_minus_cohp`
+- `*_lobster_like.json`: selected preset, scale factor, integrated `-ICOHP`,
+  and the interpretation warning
+
+The scale is empirical and intended for readability and plot comparison only.
+It does not make ABACUS NAO-COHP and LOBSTER pCOHP strict numerical equivalents.
+
+## 7. Working Examples
 
 - `examples/lts3101_lcao_si2`: minimal Si-Si validation result.
 - `examples/pt111_co_top_nspin1`: Pt(111)-CO top-site result with total Pt-C and

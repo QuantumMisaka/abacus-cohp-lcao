@@ -58,6 +58,9 @@ existing work.
 - `scripts/diamond_abacus_pw_lobster_probe.py`: diagnostic workflow used to
   test whether ABACUS PW outputs can be consumed by LOBSTER or converted to the
   LOBSTER Generic interface.
+- `scripts/scale_abacus_cohp_to_lobster.py`: empirical readability scaler that
+  maps ABACUS LCAO-COHP `.dat` curves onto LOBSTER-like magnitudes using
+  benchmark `LOBSTER -ICOHP / ABACUS -ICOHP` ratios.
 - `docs/quickstart-abacus-scf-to-cohp.md`: fast user guide for the ABACUS
   SCF -> `src/cohp.py` post-processing workflow.
 - `docs/`: method notes, validation notes, quick start guide, Pt(111)-CO report,
@@ -194,6 +197,36 @@ python src/cohp.py --out-dir /path/to/OUT.ABACUS \
   --atom-j-orbs 100,101,102 \
   --spin sum --output-prefix pair_sum
 ```
+
+## LOBSTER-like Empirical Scale
+
+After generating a two-column `.dat` curve with `src/cohp.py`, users who want a
+LOBSTER-like reading magnitude can apply the benchmark scale helper:
+
+```bash
+python scripts/scale_abacus_cohp_to_lobster.py si_si_COHP.dat \
+  --preset Si-Si \
+  --efermi 7.111283804 \
+  --output-prefix si_si_lobster_like
+```
+
+For a file whose second column is already `-COHP` on an `E-E_F` axis:
+
+```bash
+python scripts/scale_abacus_cohp_to_lobster.py pair_minus_cohp.dat \
+  --preset Pt-C \
+  --input-convention minus-cohp \
+  --efermi 0.0
+```
+
+Use `--list-presets` to inspect available channels. The script writes:
+
+- `*_lobster_like.dat`: `energy_ev source_value minus_cohp lobster_like_minus_cohp`
+- `*_lobster_like.json`: selected preset, scale factor, integrated `-ICOHP`,
+  and the interpretation warning
+
+The scale is empirical and intended for readability and plot comparison only.
+It does not make ABACUS NAO-COHP and LOBSTER pCOHP strict numerical equivalents.
 
 ## Pt(111)-CO Workflow
 
