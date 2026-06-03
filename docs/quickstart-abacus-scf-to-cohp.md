@@ -40,21 +40,31 @@ OUT.ABACUS/running_scf.log
 For multiple k points, ABACUS writes one `data-*-H/S` pair and one
 `WFC_NAO_K*.txt` file per k point.
 
-## 2. Identify Global NAO Indices
+## 2. Select Atoms And Orbital Channels
 
-`src/cohp.py` needs two orbital lists:
+The recommended interface uses 1-based ABACUS atom indices and shell labels:
 
-- `--atom-i-orbs`: global ABACUS NAO indices for atom or orbital group I.
-- `--atom-j-orbs`: global ABACUS NAO indices for atom or orbital group J.
+```bash
+python src/cohp.py --out-dir /path/to/OUT.ABACUS --list-orbitals
+```
 
-The indices are zero-based Python indices in the full ABACUS NAO order used by
-the output matrices. For a two-atom Si example with 13 NAOs per atom, the first
-Si atom is `0..12` and the second Si atom is `13..25`.
+The listing is inferred from `STRU`, `INPUT`, and `orbital_dir`. A metal-oxygen
+`d-p` channel can then be requested as:
 
-For orbital-resolved analysis, pass only the subset of orbital indices belonging
-to the channel of interest, for example metal `d` orbitals against adsorbate `p`
-orbitals. The Pt(111)-CO example stores such ranges in
-`examples/pt111_co_top_nspin1/mapping.json`.
+```bash
+--atom-i-index 95 --atom-j-index 98 --atom-i-orbs 3d --atom-j-orbs 2p
+```
+
+Labels such as `3d`, `2p`, and `4s` are chemistry-friendly aliases. ABACUS NAOs
+do not carry a strict principal quantum number in the matrix ordering, so the
+script maps them to all NAOs of the matching angular-momentum channel on that
+atom. Multiple channels can be comma-separated, for example
+`--atom-i-orbs 3p,3d,4s`. If `--atom-*-orbs` is omitted with atom-index mode,
+that atom defaults to `all`.
+
+The legacy global-NAO mode remains available. If `--atom-i-index` and
+`--atom-j-index` are omitted, `--atom-i-orbs` and `--atom-j-orbs` are interpreted
+as zero-based global ABACUS NAO indices.
 
 ## 3. Run COHP Post-Processing
 
@@ -69,8 +79,10 @@ Run a total pair COHP:
 ```bash
 env MPLBACKEND=Agg python src/cohp.py \
   --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2,3,4,5,6,7,8,9,10,11,12 \
-  --atom-j-orbs 13,14,15,16,17,18,19,20,21,22,23,24,25 \
+  --atom-i-index 1 \
+  --atom-j-index 2 \
+  --atom-i-orbs all \
+  --atom-j-orbs all \
   --method COHP \
   --de 0.05 \
   --smooth-nstddev 4 \
@@ -95,22 +107,28 @@ For spin-polarized ABACUS output, run separate spin channels or the summed curve
 
 ```bash
 python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2 \
-  --atom-j-orbs 100,101,102 \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
   --spin up \
   --invert \
   --output-prefix pair_up
 
 python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2 \
-  --atom-j-orbs 100,101,102 \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
   --spin down \
   --invert \
   --output-prefix pair_down
 
 python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2 \
-  --atom-j-orbs 100,101,102 \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
   --spin sum \
   --invert \
   --output-prefix pair_sum

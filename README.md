@@ -107,11 +107,24 @@ After SCF, the target `OUT.ABACUS` directory must contain:
 - `kpoints`: k-point weights.
 - `running_scf.log`: Fermi level and band information.
 
-The user must provide orbital-index lists for the two atoms or orbital groups to
-be analyzed. These indices are global NAO indices in the ABACUS basis order. For
-example, if atom A owns orbitals `0..12` and atom B owns orbitals `13..25`, the
-pair COHP is computed by passing those two lists to `--atom-i-orbs` and
-`--atom-j-orbs`.
+The recommended interface uses 1-based ABACUS atom indices plus shell labels.
+For example, Fe-O `d-p` COHP can be requested as
+`--atom-i-index 95 --atom-j-index 98 --atom-i-orbs 3d --atom-j-orbs 2p`.
+Labels such as `3d`, `2p`, and `4s` are accepted as chemistry-friendly aliases;
+internally they select all ABACUS NAOs of the matching angular-momentum channel
+on that atom. Multiple channels can be comma-separated, for example
+`--atom-i-orbs 3p,3d,4s`.
+
+To inspect what the script can infer from `STRU`, `INPUT`, and `orbital_dir`,
+run:
+
+```bash
+python src/cohp.py --out-dir /path/to/OUT.ABACUS --list-orbitals
+```
+
+The legacy global-NAO mode is still supported: if `--atom-i-index` and
+`--atom-j-index` are omitted, `--atom-i-orbs` and `--atom-j-orbs` are interpreted
+as zero-based global ABACUS NAO indices such as `0,1,2`.
 
 For a complete first-run workflow, start from
 `docs/quickstart-abacus-scf-to-cohp.md`.
@@ -163,8 +176,10 @@ Example:
 ```bash
 env MPLBACKEND=Agg python src/cohp.py \
   --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2,3 \
-  --atom-j-orbs 13,14,15,16 \
+  --atom-i-index 1 \
+  --atom-j-index 2 \
+  --atom-i-orbs all \
+  --atom-j-orbs all \
   --method COHP \
   --de 0.05 \
   --smooth-nstddev 4 \
@@ -183,18 +198,24 @@ For spin-polarized ABACUS outputs:
 
 ```bash
 python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2 \
-  --atom-j-orbs 100,101,102 \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
   --spin up --output-prefix pair_up
 
 python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2 \
-  --atom-j-orbs 100,101,102 \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
   --spin down --output-prefix pair_down
 
 python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-orbs 0,1,2 \
-  --atom-j-orbs 100,101,102 \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
   --spin sum --output-prefix pair_sum
 ```
 

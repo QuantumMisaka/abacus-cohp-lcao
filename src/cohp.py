@@ -1,6 +1,10 @@
+from dataclasses import dataclass
+from pathlib import Path
+import re
+import sys
+
 import read_abacus_out as rao
 import numpy as np
-from pathlib import Path
 
 """COHP"""
 def cal_COHPmatskIJ_e_ij(Hk, Sk, Ck, atomI_orbs, atomJ_orbs, mode="COHP"):
@@ -279,6 +283,357 @@ def _first_existing(candidates):
             return candidate
     return None
 
+L_MULTIPLICITY = {"s": 1, "p": 3, "d": 5, "f": 7, "g": 9}
+SHELL_ORDER = ["s", "p", "d", "f", "g"]
+
+
+@dataclass
+class OrbitalAtom:
+    atom_index: int
+    symbol: str
+    orbital_start: int
+    orbital_stop: int
+    shells: dict
+
+
+@dataclass
+class OrbitalMap:
+    atoms: list
+    total_orbitals: int
+    stru_path: Path
+    input_path: Path | None
+    orbital_dir: Path | None
+
+
+@dataclass
+class OrbitalSelection:
+    atom_index: int
+    symbol: str
+    selector: str
+    normalized_selectors: list
+    indices: list
+
+
+def _strip_comment(line):
+    return line.split("#", 1)[0].strip()
+
+
+def _section_lines(lines, section_name):
+    section_headers = {
+        "ATOMIC_SPECIES",
+        "NUMERICAL_ORBITAL",
+        "LATTICE_CONSTANT",
+        "LATTICE_VECTORS",
+        "ATOMIC_POSITIONS",
+    }
+    start = None
+    for idx, line in enumerate(lines):
+        if _strip_comment(line).upper() == section_name:
+            start = idx + 1
+            break
+    if start is None:
+        return []
+
+    out = []
+    for line in lines[start:]:
+        cleaned = _strip_comment(line)
+        if not cleaned:
+            if out:
+                break
+            continue
+        if cleaned.upper() in section_headers:
+            break
+        out.append(cleaned)
+    return out
+
+
+def _atomic_position_lines(lines):
+    section_headers = {
+        "ATOMIC_SPECIES",
+        "NUMERICAL_ORBITAL",
+        "LATTICE_CONSTANT",
+        "LATTICE_VECTORS",
+        "ATOMIC_POSITIONS",
+    }
+    start = None
+    for idx, line in enumerate(lines):
+        if _strip_comment(line).upper() == "ATOMIC_POSITIONS":
+            start = idx + 1
+            break
+    if start is None:
+        return []
+
+    out = []
+    for line in lines[start:]:
+        cleaned = _strip_comment(line)
+        if not cleaned:
+            continue
+        if cleaned.upper() in section_headers:
+            break
+        out.append(cleaned)
+    return out
+
+
+def parse_input_orbital_dir(input_path):
+    """Read orbital_dir from an ABACUS INPUT file."""
+    if input_path is None:
+        return None
+    input_path = Path(input_path)
+    for line in input_path.read_text().splitlines():
+        fields = _strip_comment(line).split()
+        if len(fields) >= 2 and fields[0].lower() == "orbital_dir":
+            path = Path(fields[1]).expanduser()
+            return path if path.is_absolute() else (input_path.parent / path).resolve()
+    return None
+
+
+def parse_stru_metadata(stru_path):
+    """Parse species order, orbital filenames, and atom symbols from an ABACUS STRU."""
+    stru_path = Path(stru_path)
+    lines = stru_path.read_text().splitlines()
+
+    species = []
+    for line in _section_lines(lines, "ATOMIC_SPECIES"):
+        fields = line.split()
+        if fields:
+            species.append(fields[0])
+    if not species:
+        raise ValueError(f"Cannot parse ATOMIC_SPECIES from {stru_path}")
+
+    orbital_files = _section_lines(lines, "NUMERICAL_ORBITAL")
+    if len(orbital_files) != len(species):
+        raise ValueError(
+            f"NUMERICAL_ORBITAL in {stru_path} has {len(orbital_files)} entries, "
+            f"but ATOMIC_SPECIES has {len(species)} species"
+        )
+
+    atom_position_lines = _atomic_position_lines(lines)
+    if len(atom_position_lines) < 2:
+        raise ValueError(f"Cannot parse ATOMIC_POSITIONS from {stru_path}")
+
+    atoms = []
+    cursor = 1
+    while cursor < len(atom_position_lines):
+        symbol = atom_position_lines[cursor].split()[0]
+        if cursor + 2 >= len(atom_position_lines):
+            raise ValueError(f"Incomplete ATOMIC_POSITIONS block for {symbol} in {stru_path}")
+        natom = int(float(atom_position_lines[cursor + 2].split()[0]))
+        atoms.extend([symbol] * natom)
+        cursor += 3 + natom
+
+    orbital_by_symbol = dict(zip(species, orbital_files))
+    return species, orbital_by_symbol, atoms
+
+
+def _shell_counts_from_orbital_file(orbital_path):
+    text = Path(orbital_path).read_text(errors="ignore")
+    shells = {}
+    for shell in SHELL_ORDER:
+        pattern = rf"Number\s+of\s+{shell.upper()}orbital\s*-->\s*(\d+)"
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            shells[shell] = int(match.group(1))
+    return shells
+
+
+def _shell_counts_from_filename(orbital_path):
+    name = Path(orbital_path).name.lower()
+    matches = re.findall(r"(\d+)([spdfg])", name)
+    return {shell: int(count) for count, shell in matches}
+
+
+def parse_orbital_shells(orbital_path):
+    """Return zeta counts per angular-momentum shell from an ABACUS .orb file."""
+    orbital_path = Path(orbital_path)
+    if orbital_path.exists():
+        shells = _shell_counts_from_orbital_file(orbital_path)
+        if shells:
+            return shells
+    shells = _shell_counts_from_filename(orbital_path)
+    if shells:
+        return shells
+    raise ValueError(f"Cannot determine orbital shells from {orbital_path}")
+
+
+def _resolve_orbital_path(entry, stru_path, orbital_dir):
+    path = Path(entry).expanduser()
+    candidates = []
+    if path.is_absolute():
+        candidates.append(path)
+    else:
+        candidates.append((Path(stru_path).parent / path).resolve())
+        if orbital_dir is not None:
+            candidates.append((Path(orbital_dir) / path.name).resolve())
+            candidates.append((Path(orbital_dir) / path).resolve())
+    existing = _first_existing(candidates)
+    return existing if existing is not None else candidates[0]
+
+
+def _shell_ranges(start, shells):
+    ranges = {}
+    cursor = start
+    for shell in SHELL_ORDER:
+        if shell not in shells:
+            continue
+        width = shells[shell] * L_MULTIPLICITY[shell]
+        ranges[shell] = list(range(cursor, cursor + width))
+        cursor += width
+    ranges["all"] = list(range(start, cursor))
+    return ranges
+
+
+def build_orbital_map(stru_path, input_path=None, orbital_dir=None):
+    """Build a 1-based atom to global-NAO shell map from STRU/INPUT/orbital files."""
+    stru_path = Path(stru_path)
+    input_path = Path(input_path) if input_path is not None else None
+    orbital_dir = Path(orbital_dir).expanduser() if orbital_dir is not None else parse_input_orbital_dir(input_path)
+    if orbital_dir is not None and not orbital_dir.is_absolute():
+        orbital_dir = (stru_path.parent / orbital_dir).resolve()
+
+    _, orbital_by_symbol, atom_symbols = parse_stru_metadata(stru_path)
+    shells_by_symbol = {}
+    for symbol, orbital_entry in orbital_by_symbol.items():
+        orbital_path = _resolve_orbital_path(orbital_entry, stru_path, orbital_dir)
+        shells_by_symbol[symbol] = parse_orbital_shells(orbital_path)
+
+    atoms = []
+    cursor = 0
+    for idx, symbol in enumerate(atom_symbols, start=1):
+        if symbol not in shells_by_symbol:
+            raise ValueError(f"No NUMERICAL_ORBITAL entry for atom {idx} symbol {symbol}")
+        ranges = _shell_ranges(cursor, shells_by_symbol[symbol])
+        atoms.append(
+            OrbitalAtom(
+                atom_index=idx,
+                symbol=symbol,
+                orbital_start=cursor,
+                orbital_stop=cursor + len(ranges["all"]),
+                shells=ranges,
+            )
+        )
+        cursor += len(ranges["all"])
+    return OrbitalMap(
+        atoms=atoms,
+        total_orbitals=cursor,
+        stru_path=stru_path,
+        input_path=input_path,
+        orbital_dir=orbital_dir,
+    )
+
+
+def parse_global_orbital_indices(text):
+    """Parse a comma-separated 0-based global NAO index list."""
+    indices = [int(token.strip()) for token in text.split(",") if token.strip()]
+    if not indices:
+        raise ValueError("Orbital index list is empty")
+    if any(index < 0 for index in indices):
+        raise ValueError("Global NAO indices must be non-negative")
+    return indices
+
+
+def _selector_tokens(selector):
+    return [token.strip().lower() for token in selector.split(",") if token.strip()]
+
+
+def _selector_shell(token):
+    if token == "all":
+        return "all"
+    match = re.fullmatch(r"(?:\d+)?([spdfg])", token)
+    return match.group(1) if match else None
+
+
+def resolve_atom_orbitals(orbital_map, atom_index, selector="all"):
+    """Resolve a 1-based atom index and shell selector to global NAO indices."""
+    if atom_index < 1 or atom_index > len(orbital_map.atoms):
+        raise ValueError(f"atom index {atom_index} is outside 1..{len(orbital_map.atoms)}")
+
+    tokens = _selector_tokens(selector or "all")
+    numeric = [re.fullmatch(r"\d+", token) is not None for token in tokens]
+    if any(numeric):
+        if not all(numeric):
+            raise ValueError("Do not mix global NAO indices with shell labels in --atom-*-orbs")
+        raise ValueError("Use global NAO indices without --atom-*-index")
+
+    atom = orbital_map.atoms[atom_index - 1]
+    normalized = []
+    selected = set()
+    for token in tokens:
+        shell = _selector_shell(token)
+        if shell is None:
+            raise ValueError(f"Invalid orbital selector '{token}'")
+        if shell not in atom.shells:
+            available = ", ".join([s for s in SHELL_ORDER + ["all"] if s in atom.shells])
+            raise ValueError(
+                f"Atom {atom_index} ({atom.symbol}) has no {shell} shell; "
+                f"available shells: {available}"
+            )
+        if shell not in normalized:
+            normalized.append(shell)
+        selected.update(atom.shells[shell])
+
+    return OrbitalSelection(
+        atom_index=atom_index,
+        symbol=atom.symbol,
+        selector=selector,
+        normalized_selectors=normalized,
+        indices=sorted(selected),
+    )
+
+
+def _infer_companion_file(out_dir, explicit_path, filename):
+    if explicit_path:
+        return Path(explicit_path)
+    out_dir = Path(out_dir)
+    candidates = [out_dir / filename, out_dir.parent / filename]
+    return _first_existing(candidates)
+
+
+def resolve_cli_orbitals(out_dir, atom_i_orbs, atom_j_orbs,
+                         atom_i_index=None, atom_j_index=None,
+                         stru_path=None, input_path=None, orbital_dir=None):
+    """Resolve CLI orbital arguments, preserving legacy global-index mode."""
+    if atom_i_index is None and atom_j_index is None:
+        if not atom_i_orbs or not atom_j_orbs:
+            raise ValueError("--atom-i-orbs and --atom-j-orbs are required with --out-dir")
+        return parse_global_orbital_indices(atom_i_orbs), parse_global_orbital_indices(atom_j_orbs), None
+    if atom_i_index is None or atom_j_index is None:
+        raise ValueError("--atom-i-index and --atom-j-index must be used together")
+
+    stru_path = _infer_companion_file(out_dir, stru_path, "STRU")
+    input_path = _infer_companion_file(out_dir, input_path, "INPUT")
+    if stru_path is None:
+        raise FileNotFoundError("Cannot find STRU; pass --stru explicitly")
+
+    orbital_map = build_orbital_map(stru_path=stru_path, input_path=input_path, orbital_dir=orbital_dir)
+    selection_i = resolve_atom_orbitals(orbital_map, atom_i_index, atom_i_orbs or "all")
+    selection_j = resolve_atom_orbitals(orbital_map, atom_j_index, atom_j_orbs or "all")
+    return selection_i.indices, selection_j.indices, (selection_i, selection_j, orbital_map)
+
+
+def print_orbital_resolution(info):
+    if info is None:
+        return
+    selection_i, selection_j, orbital_map = info
+    for label, selection in [("I", selection_i), ("J", selection_j)]:
+        preview = ",".join(str(index) for index in selection.indices[:12])
+        if len(selection.indices) > 12:
+            preview += ",..."
+        shells = ",".join(selection.normalized_selectors)
+        print(
+            f"atom {label}: {selection.symbol} #{selection.atom_index}, "
+            f"selector {selection.selector} -> {shells}, "
+            f"{len(selection.indices)} NAOs, global indices {preview}",
+            file=sys.stderr,
+        )
+    print(f"orbital map: {len(orbital_map.atoms)} atoms, {orbital_map.total_orbitals} NAOs", file=sys.stderr)
+
+
+def print_orbital_map(orbital_map):
+    print("atom_index symbol orbital_start orbital_stop shells")
+    for atom in orbital_map.atoms:
+        shells = ",".join([shell for shell in SHELL_ORDER + ["all"] if shell in atom.shells])
+        print(f"{atom.atom_index} {atom.symbol} {atom.orbital_start} {atom.orbital_stop} {shells}")
+
 def initialize_from_outdir(out_dir, atomI_orbs, atomJ_orbs, spin="sum"):
     """Initialize COHP post-processing from an ABACUS OUT.* directory."""
     out_dir = Path(out_dir)
@@ -398,6 +753,10 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
         atomJ_orbs=atomJ_orbs,
         spin=spin,
     )
+    nlocal = Hks[0].shape[0]
+    requested = atomI_orbs + atomJ_orbs
+    if requested and max(requested) >= nlocal:
+        raise ValueError(f"Requested global NAO index {max(requested)} but ABACUS output has {nlocal} orbitals")
     if testmethod.startswith("pCO"):
         Aks = [Sk[:, atomI_orbs + atomJ_orbs] for Sk in Sks]
         e, vals = cal_pCOHPvalsIJ_e(
@@ -427,10 +786,32 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description="ABACUS LCAO COHP post-processing")
+    parser = argparse.ArgumentParser(
+        description="ABACUS LCAO COHP post-processing",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-orbs 0,1,2 --atom-j-orbs 100,101\n"
+            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
+            "--atom-i-orbs 3d --atom-j-orbs 2p\n"
+            "  python refs/cohp.py --out-dir OUT.ABACUS --list-orbitals\n"
+        ),
+    )
     parser.add_argument("--out-dir", help="ABACUS OUT.* directory")
-    parser.add_argument("--atom-i-orbs", help="Comma-separated orbital indices for atom/group I")
-    parser.add_argument("--atom-j-orbs", help="Comma-separated orbital indices for atom/group J")
+    parser.add_argument(
+        "--atom-i-orbs",
+        help="Comma-separated global NAO indices, or shell labels with --atom-i-index, e.g. 3d or 3p,3d,4s",
+    )
+    parser.add_argument(
+        "--atom-j-orbs",
+        help="Comma-separated global NAO indices, or shell labels with --atom-j-index, e.g. 2p or all",
+    )
+    parser.add_argument("--atom-i-index", type=int, help="1-based atom index for atom/group I")
+    parser.add_argument("--atom-j-index", type=int, help="1-based atom index for atom/group J")
+    parser.add_argument("--stru", help="ABACUS STRU path for atom-index shell selection")
+    parser.add_argument("--input", dest="input_path", help="ABACUS INPUT path for orbital_dir discovery")
+    parser.add_argument("--orbital-dir", help="Directory containing ABACUS numerical orbital files")
+    parser.add_argument("--list-orbitals", action="store_true", help="List atom shell channels and exit")
     parser.add_argument("--method", default="COHP", choices=["COHP", "COOP", "pCOHP", "pCOOP"])
     parser.add_argument("--de", type=float, default=0.1)
     parser.add_argument("--no-smooth", action="store_true")
@@ -443,12 +824,33 @@ if __name__ == '__main__':
     parser.add_argument("--spin", default="sum", choices=["sum", "up", "down"])
     args = parser.parse_args()
     if args.out_dir:
-        if not args.atom_i_orbs or not args.atom_j_orbs:
-            raise ValueError("--atom-i-orbs and --atom-j-orbs are required with --out-dir")
+        if args.list_orbitals:
+            stru_path = _infer_companion_file(args.out_dir, args.stru, "STRU")
+            input_path = _infer_companion_file(args.out_dir, args.input_path, "INPUT")
+            if stru_path is None:
+                raise FileNotFoundError("Cannot find STRU; pass --stru explicitly")
+            orbital_map = build_orbital_map(
+                stru_path=stru_path,
+                input_path=input_path,
+                orbital_dir=args.orbital_dir,
+            )
+            print_orbital_map(orbital_map)
+            raise SystemExit(0)
+        atomI_orbs, atomJ_orbs, resolution = resolve_cli_orbitals(
+            out_dir=args.out_dir,
+            atom_i_orbs=args.atom_i_orbs,
+            atom_j_orbs=args.atom_j_orbs,
+            atom_i_index=args.atom_i_index,
+            atom_j_index=args.atom_j_index,
+            stru_path=args.stru,
+            input_path=args.input_path,
+            orbital_dir=args.orbital_dir,
+        )
+        print_orbital_resolution(resolution)
         run_outdir(
             out_dir=args.out_dir,
-            atomI_orbs=[int(x) for x in args.atom_i_orbs.split(",") if x],
-            atomJ_orbs=[int(x) for x in args.atom_j_orbs.split(",") if x],
+            atomI_orbs=atomI_orbs,
+            atomJ_orbs=atomJ_orbs,
             testmethod=args.method,
             de=args.de,
             smooth=not args.no_smooth,
