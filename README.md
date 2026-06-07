@@ -189,10 +189,18 @@ env MPLBACKEND=Agg python src/cohp.py \
 
 This command writes:
 
-- `my_pair_COHP.dat`: two-column energy and COHP data.
+- `my_pair_COHP.dat`: raw two-column absolute-energy and COHP data.
+- `my_pair_COHP_EminusEf.dat`: two-column `E - E_Fermi` and COHP data, written
+  by default to match the usual VASP+LOBSTER COHP energy reference.
+- `my_pair_COHP.meta.json`: Fermi energy, output file paths, method, spin, and
+  smoothing settings.
 - `my_pair_COHP.png`: plotted curve. With `--invert`, the figure follows the
   common `-COHP` plotting convention where occupied bonding contributions appear
   positive.
+
+The command-line log prints `E_Fermi` and the raw, shifted, metadata, and plot
+paths. Add `--no-shift-to-efermi` to suppress `*_EminusEf.dat` and plot on the
+absolute-energy axis.
 
 For spin-polarized ABACUS outputs:
 
@@ -221,8 +229,8 @@ python src/cohp.py --out-dir /path/to/OUT.ABACUS \
 
 ## LOBSTER-like Empirical Scale
 
-After generating a two-column `.dat` curve with `src/cohp.py`, users who want a
-LOBSTER-like reading magnitude can apply the benchmark scale helper:
+After generating a raw two-column `.dat` curve with `src/cohp.py`, users who
+want a LOBSTER-like reading magnitude can apply the benchmark scale helper:
 
 ```bash
 python scripts/scale_abacus_cohp_to_lobster.py si_si_COHP.dat \
@@ -239,6 +247,9 @@ python scripts/scale_abacus_cohp_to_lobster.py pair_minus_cohp.dat \
   --input-convention minus-cohp \
   --efermi 0.0
 ```
+
+If the input is a `*_EminusEf.dat` file, use `--efermi 0.0` to avoid subtracting
+the Fermi energy twice.
 
 Use `--list-presets` to inspect available channels. The script writes:
 

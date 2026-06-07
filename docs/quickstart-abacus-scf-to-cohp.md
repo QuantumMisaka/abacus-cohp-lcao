@@ -94,12 +94,26 @@ The command writes:
 
 ```text
 si_si_COHP.dat
+si_si_COHP_EminusEf.dat
+si_si_COHP.meta.json
 si_si_COHP.png
 ```
 
 `--invert` plots `-COHP`, the common convention where positive occupied area is
 usually interpreted as bonding contribution. Without `--invert`, the raw COHP
 sign is written.
+`si_si_COHP.dat` keeps the raw absolute-energy COHP data. `si_si_COHP_EminusEf.dat`
+uses `E - E_Fermi`, matching the usual VASP+LOBSTER COHP energy reference.
+`si_si_COHP.meta.json` records the Fermi energy, output files, method, spin, and
+smoothing settings. The command-line log also prints `E_Fermi` and the generated
+raw, shifted, metadata, and plot paths.
+
+To keep only the absolute-energy output and plot without writing
+`*_EminusEf.dat`, add:
+
+```bash
+--no-shift-to-efermi
+```
 
 ## 4. Spin-Polarized Output
 
@@ -150,8 +164,8 @@ but method-dependent absolute ICOHP scales.
 
 ## 6. LOBSTER-like Empirical Scale
 
-After generating a two-column `.dat` curve with `src/cohp.py`, users who want a
-LOBSTER-like reading magnitude can apply the benchmark scale helper:
+After generating a raw two-column `.dat` curve with `src/cohp.py`, users who
+want a LOBSTER-like reading magnitude can apply the benchmark scale helper:
 
 ```bash
 python scripts/scale_abacus_cohp_to_lobster.py si_si_COHP.dat \
@@ -168,6 +182,9 @@ python scripts/scale_abacus_cohp_to_lobster.py pair_minus_cohp.dat \
   --input-convention minus-cohp \
   --efermi 0.0
 ```
+
+If the input is a `*_EminusEf.dat` file, use `--efermi 0.0` to avoid subtracting
+the Fermi energy twice.
 
 Use `--list-presets` to inspect available channels. The script writes:
 

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import re
 import sys
@@ -194,6 +195,17 @@ def dos_integral(x, y):
 
 """There is a bug in the following function"""
 import matplotlib.pyplot as plt
+def _visible_energy_window(x, y, emin=None, emax=None):
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    emin = float(np.min(x)) if emin is None else float(emin)
+    emax = float(np.max(x)) if emax is None else float(emax)
+    mask = (x >= emin) & (x <= emax)
+    if not np.any(mask):
+        raise ValueError(f"No COHP data points in energy window [{emin}, {emax}] eV")
+    return x[mask], y[mask], emin, emax
+
+
 def draw_COHP(x, y,
               testmethod = "COHP", 
               emin = None, emax = None,
@@ -203,22 +215,23 @@ def draw_COHP(x, y,
     # set x and y
     e_shifted = x - efermi if shift_toefermi and efermi is not None else x
     COHPvalsIJ_e = -y if invert_COHP else y
-    # set ylim
-    emin = min(e_shifted) if emin is None else emin
-    emax = max(e_shifted) if emax is None else emax
+    e_plot, cohp_plot, emin, emax = _visible_energy_window(e_shifted, COHPvalsIJ_e, emin=emin, emax=emax)
     # set xlim
-    width = max(abs(min(COHPvalsIJ_e)), abs(max(COHPvalsIJ_e))) if width is None else width
+    width = max(abs(min(cohp_plot)), abs(max(cohp_plot))) if width is None else width
+    if width == 0:
+        width = 1.0
 
     plt.figure(figsize=(6, 18))
-    plt.plot(COHPvalsIJ_e, e_shifted)
-    #plt.ylim(emin, emax)
+    plt.plot(cohp_plot, e_plot)
+    plt.ylim(emin, emax)
     plt.xlim(-width, width)
 
     plt.axvline(0, color='black', lw=0.5)
-    plt.axhline(0, color='black', lw=0.5, linestyle='--', label='E_Fermi')
-    plt.text(width*1.05, 0.5, r'$\epsilon_F$', fontsize=15)
+    if emin <= 0 <= emax:
+        plt.axhline(0, color='black', lw=0.5, linestyle='--', label='E_Fermi')
+        plt.text(width*1.05, 0.5, r'$\epsilon_F$', fontsize=15)
 
-    plt.fill_betweenx(e_shifted, COHPvalsIJ_e, 0, where=(e_shifted <= 0),
+    plt.fill_betweenx(e_plot, cohp_plot, 0, where=(e_plot <= 0),
                       interpolate=True, alpha=0.3)
     plt.ylabel("Energy (eV)")
 
@@ -700,6 +713,70 @@ def initialize_from_outdir(out_dir, atomI_orbs, atomJ_orbs, spin="sum"):
     efermi = efermi_values[-1] if len(efermi_values) else 0.0
     return Hks, Sks, Cks, Eks, kptwts, efermi, atomI_orbs, atomJ_orbs
 
+
+def _cohp_output_paths(output_prefix):
+    prefix = Path(output_prefix)
+    raw_path = prefix.with_suffix(".dat")
+    shifted_path = prefix.with_name(f"{prefix.stem}_EminusEf").with_suffix(".dat")
+    metadata_path = prefix.with_suffix(".meta.json")
+    return raw_path, shifted_path, metadata_path
+
+
+def _write_cohp_outputs(output_prefix, energy, values, efermi, *,
+                        shift_toefermi=True, testmethod="COHP", spin="sum",
+                        de=0.1, smooth=True, smooth_nstddev=3):
+    raw_path, shifted_path, metadata_path = _cohp_output_paths(output_prefix)
+    np.savetxt(
+        raw_path,
+        np.column_stack([energy, values]),
+        header="Energy(eV) COHP shifted_by_efermi=false",
+    )
+
+    files = {
+        "raw": {
+            "path": str(raw_path),
+            "energy_column": "Energy(eV)",
+            "shifted_by_efermi": False,
+        }
+    }
+    if shift_toefermi:
+        shifted_energy = np.asarray(energy, dtype=float) - efermi
+        np.savetxt(
+            shifted_path,
+            np.column_stack([shifted_energy, values]),
+            header="Energy-E_Fermi(eV) COHP shifted_by_efermi=true",
+        )
+        files["shifted"] = {
+            "path": str(shifted_path),
+            "energy_column": "Energy-E_Fermi(eV)",
+            "shifted_by_efermi": True,
+        }
+    files["metadata"] = {
+        "path": str(metadata_path),
+    }
+
+    metadata = {
+        "efermi_ev": float(efermi),
+        "shift_toefermi": bool(shift_toefermi),
+        "method": testmethod,
+        "spin": spin,
+        "de_ev": float(de),
+        "smooth": bool(smooth),
+        "smooth_nstddev": float(smooth_nstddev),
+        "files": files,
+    }
+    metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")
+    return metadata
+
+
+def _print_cohp_output_summary(metadata, plot_path):
+    print(f"E_Fermi = {metadata['efermi_ev']:.6f} eV", file=sys.stderr)
+    print(f"raw COHP: {metadata['files']['raw']['path']}", file=sys.stderr)
+    if "shifted" in metadata["files"]:
+        print(f"E-E_Fermi COHP: {metadata['files']['shifted']['path']}", file=sys.stderr)
+    print(f"metadata: {metadata['files']['metadata']['path']}", file=sys.stderr)
+    print(f"plot: {plot_path}", file=sys.stderr)
+
 def main(testcase, testmethod,
          de = 0.1, smooth = True, smooth_nstddev = 3,
          shift_toefermi = True, invert_COHP = False,
@@ -773,15 +850,25 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
 
     e, vals = rao.zero_padding(xmin=np.min(e) * 1.1, xmax=np.max(e) * 1.1, dx=de, x=e, y=vals)
     vals = rao.Gauss_smoothing(x=e, y=vals, sigma=smooth_nstddev * de, normalize=False) if smooth else vals
-    if output_prefix:
-        np.savetxt(f"{output_prefix}.dat", np.column_stack([e, vals]), header="Energy(eV) COHP")
-        testmethod_for_plot = output_prefix
-    else:
-        testmethod_for_plot = testmethod
+    output_prefix = output_prefix or testmethod
+    metadata = _write_cohp_outputs(
+        output_prefix,
+        e,
+        vals,
+        efermi,
+        shift_toefermi=shift_toefermi,
+        testmethod=testmethod,
+        spin=spin,
+        de=de,
+        smooth=smooth,
+        smooth_nstddev=smooth_nstddev,
+    )
+    testmethod_for_plot = output_prefix
     draw_COHP(
         e, vals, testmethod=testmethod_for_plot, emin=emin, emax=emax, width=width,
         shift_toefermi=shift_toefermi, efermi=efermi, invert_COHP=invert_COHP,
     )
+    _print_cohp_output_summary(metadata, Path(f"{testmethod_for_plot}.png"))
     return e, vals
 
 if __name__ == '__main__':
@@ -791,10 +878,10 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-orbs 0,1,2 --atom-j-orbs 100,101\n"
-            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
+            "  python src/cohp.py --out-dir OUT.ABACUS --atom-i-orbs 0,1,2 --atom-j-orbs 100,101\n"
+            "  python src/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
             "--atom-i-orbs 3d --atom-j-orbs 2p\n"
-            "  python refs/cohp.py --out-dir OUT.ABACUS --list-orbitals\n"
+            "  python src/cohp.py --out-dir OUT.ABACUS --list-orbitals\n"
         ),
     )
     parser.add_argument("--out-dir", help="ABACUS OUT.* directory")
@@ -820,8 +907,15 @@ if __name__ == '__main__':
     parser.add_argument("--emax", type=float, default=10)
     parser.add_argument("--width", type=float, default=None)
     parser.add_argument("--invert", action="store_true")
+    parser.add_argument(
+        "--no-shift-to-efermi",
+        action="store_false",
+        dest="shift_toefermi",
+        help="Do not write E-E_Fermi data or shift the automatic plot energy axis",
+    )
     parser.add_argument("--output-prefix")
     parser.add_argument("--spin", default="sum", choices=["sum", "up", "down"])
+    parser.set_defaults(shift_toefermi=True)
     args = parser.parse_args()
     if args.out_dir:
         if args.list_orbitals:
@@ -859,6 +953,7 @@ if __name__ == '__main__':
             emax=args.emax,
             width=args.width,
             invert_COHP=args.invert,
+            shift_toefermi=args.shift_toefermi,
             output_prefix=args.output_prefix,
             spin=args.spin,
         )
