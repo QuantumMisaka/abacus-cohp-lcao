@@ -195,7 +195,31 @@ Use `--list-presets` to inspect available channels. The script writes:
 The scale is empirical and intended for readability and plot comparison only.
 It does not make ABACUS NAO-COHP and LOBSTER pCOHP strict numerical equivalents.
 
-## 7. Working Examples
+## 7. High-Performance Post-Processing
+
+`src/cohp.py` defaults to the streaming COHP/COOP parser. It reads only the
+selected H/S sub-block and the selected WFC rows, which keeps memory use low for
+large ABACUS outputs.
+
+Use this form for a large post-processing job:
+
+```bash
+env MPLBACKEND=Agg python src/cohp.py \
+  --out-dir /path/to/OUT.ABACUS \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
+  --method COHP \
+  --workers 4 \
+  --invert \
+  --output-prefix Fe131_O366
+```
+
+Use `--workers N` to parallelize k-point parsing. Keep `--legacy-full-read` for
+debugging or old-style comparisons only.
+
+## 8. Working Examples
 
 - `examples/lts3101_lcao_si2`: minimal Si-Si validation result.
 - `examples/pt111_co_top_nspin1`: Pt(111)-CO top-site result with total Pt-C and

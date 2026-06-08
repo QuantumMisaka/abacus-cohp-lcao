@@ -1004,7 +1004,15 @@ if __name__ == '__main__':
             "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-orbs 0,1,2 --atom-j-orbs 100,101\n"
             "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
             "--atom-i-orbs 3d --atom-j-orbs 2p\n"
+            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
+            "--atom-i-orbs 3d --atom-j-orbs 2p --workers 4\n"
+            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
+            "--atom-i-orbs 3d --atom-j-orbs 2p --legacy-full-read\n"
             "  python refs/cohp.py --out-dir OUT.ABACUS --list-orbitals\n"
+            "\nPerformance tips:\n"
+            "  - COHP/COOP uses the streaming parser by default and only reads the selected H/S block and WFC rows.\n"
+            "  - Use --workers N to parallelize k-point parsing when the output contains many files.\n"
+            "  - Use --legacy-full-read only when you need the older full-matrix path for debugging or comparison.\n"
         ),
     )
     parser.add_argument("--out-dir", help="ABACUS OUT.* directory")
@@ -1042,12 +1050,12 @@ if __name__ == '__main__':
         "--workers",
         type=int,
         default=1,
-        help="Number of parallel worker processes for streaming COHP/COOP parsing",
+        help="Parallel worker count for the streaming COHP/COOP parser; 1 keeps it serial",
     )
     parser.add_argument(
         "--legacy-full-read",
         action="store_true",
-        help="Use the legacy full-matrix reader instead of the streaming COHP/COOP path",
+        help="Force the legacy full-matrix reader instead of the default streaming COHP/COOP path",
     )
     parser.set_defaults(shift_toefermi=True)
     args = parser.parse_args()
