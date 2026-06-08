@@ -62,6 +62,13 @@ def cal_COHPvalskIJ_e(Hk, Sk, Ek, Ck, atomI_orbs, atomJ_orbs, mode="COHP"):
     valskIJ_e = [np.sum(matskIJ_ij_e[i]) for i in range(nband)]
     return Ek, valskIJ_e
 
+def cal_COHPvalskIJ_e_selected(block, Ek, Ck_selected, n_i, mode="COHP"):
+    """Compute COHP/COOP for one k point from selected matrix/WFC blocks."""
+    c_i = Ck_selected[:n_i, :]
+    c_j = Ck_selected[n_i:, :]
+    vals = np.einsum("ib,ij,jb->b", c_i.conj(), block, c_j, optimize=True).real
+    return Ek, vals
+
 def cal_COHPvalsIJ_e(Hks, Sks, Eks, Cks, wk = None, 
                      atomI_orbs = None, atomJ_orbs = None,
                      mode: str = "COHP"):
@@ -90,6 +97,105 @@ def cal_COHPvalsIJ_e(Hks, Sks, Eks, Cks, wk = None,
     Evals, COHPvalsIJ_e = zip(*sorted(zip(Evals, COHPvalsIJ_e)))
     # energy unit conversion
     Evals = np.array([rao.unit_conversion(e, "Ry", "eV") for e in Evals])
+    return dos_integral(Evals, COHPvalsIJ_e)
+
+def _sorted_matrix_files(out_dir, suffix):
+    return sorted(out_dir.glob(f"data-*-{suffix}"), key=lambda p: int(p.stem.split("-")[1]))
+
+def _wfc_file_for_index(out_dir, ik):
+    return _first_existing([
+        out_dir / f"WFC_NAO_K{ik + 1}.txt",
+        out_dir / f"WFC_NAO_K{ik + 1}_ION1.txt",
+        out_dir / f"LOWF_K_{ik + 1}.txt",
+        out_dir / f"LOWF_K_{ik + 1}.dat",
+        out_dir / f"WFC_NAO_GAMMA{ik + 1}.txt",
+        out_dir / f"WFC_NAO_GAMMA{ik + 1}_ION1.txt",
+        out_dir / f"LOWF_GAMMA_S{ik + 1}.dat",
+    ])
+
+def _matrix_file_selection(out_dir, spin="sum"):
+    out_dir = Path(out_dir)
+    h_files = _sorted_matrix_files(out_dir, "H")
+    s_files = _sorted_matrix_files(out_dir, "S")
+    if len(h_files) == 0 or len(h_files) != len(s_files):
+        raise FileNotFoundError(f"Cannot find matching data-*-H/data-*-S files in {out_dir}")
+
+    nmatrix = len(h_files)
+    kpoints_file = out_dir / "kpoints"
+    if kpoints_file.exists():
+        base_wts = rao.read_kpoints(str(kpoints_file), as_dict=False)[0][:, -1]
+    else:
+        base_wts = np.full(nmatrix, 1.0 / nmatrix)
+
+    if nmatrix == len(base_wts):
+        nspin = 1
+        kptwts = np.asarray(base_wts, dtype=float)
+    elif nmatrix == 2 * len(base_wts):
+        nspin = 2
+        kptwts = np.concatenate([base_wts, base_wts]).astype(float)
+    else:
+        raise ValueError(
+            f"Cannot map {nmatrix} H/S matrices onto {len(base_wts)} k-point weights in {out_dir}"
+        )
+
+    spin = spin.lower()
+    if spin not in {"sum", "up", "down"}:
+        raise ValueError("spin must be one of: sum, up, down")
+    if nspin == 2 and spin == "up":
+        indices = range(0, len(base_wts))
+    elif nspin == 2 and spin == "down":
+        indices = range(len(base_wts), nmatrix)
+    elif nspin == 1 and spin in {"up", "down"}:
+        raise ValueError(f"Requested spin={spin}, but {out_dir} contains nspin=1 output")
+    else:
+        indices = range(nmatrix)
+
+    selected = []
+    for ik in indices:
+        wfc = _wfc_file_for_index(out_dir, ik)
+        if wfc is None:
+            raise FileNotFoundError(f"Cannot find wavefunction text file for k index {ik + 1} in {out_dir}")
+        selected.append((ik, h_files[ik], s_files[ik], wfc, float(kptwts[ik])))
+    return selected
+
+def _cohp_streaming_one(item, atomI_orbs, atomJ_orbs, mode="COHP"):
+    _ik, h_file, s_file, wfc_file, weight = item
+    selected_orbs = list(atomI_orbs) + list(atomJ_orbs)
+    mat_file = s_file if mode == "COOP" else h_file
+    block = rao.read_mat_hs_submatrix(mat_file, atomI_orbs, atomJ_orbs)
+    c_selected, _kvec, ek, _occ = rao.read_lowf_selected(wfc_file, selected_orbs)
+    ek, vals = cal_COHPvalskIJ_e_selected(block, ek, c_selected, len(atomI_orbs), mode=mode)
+    return ek, vals * weight
+
+def cal_COHPvalsIJ_e_streaming(out_dir, atomI_orbs, atomJ_orbs, wk=None, mode="COHP", spin="sum", workers=1):
+    """Stream COHP/COOP from selected H/S and WFC blocks without full dense matrices."""
+    if mode not in {"COHP", "COOP"}:
+        raise ValueError("Streaming path supports COHP and COOP only")
+    items = _matrix_file_selection(out_dir, spin=spin)
+    if wk is not None:
+        if len(wk) != len(items):
+            raise ValueError(f"Expected {len(items)} k weights, got {len(wk)}")
+        items = [(ik, h, s, wfc, float(wk_i)) for (ik, h, s, wfc, _), wk_i in zip(items, wk)]
+
+    if workers is None or workers <= 1 or len(items) <= 1:
+        pieces = [_cohp_streaming_one(item, atomI_orbs, atomJ_orbs, mode=mode) for item in items]
+    else:
+        from concurrent.futures import ProcessPoolExecutor
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            futures = [
+                pool.submit(_cohp_streaming_one, item, list(atomI_orbs), list(atomJ_orbs), mode)
+                for item in items
+            ]
+            pieces = [future.result() for future in futures]
+
+    Evals = []
+    COHPvalsIJ_e = []
+    for ek, vals in pieces:
+        Evals += ek.tolist()
+        COHPvalsIJ_e += vals.tolist()
+    Evals, COHPvalsIJ_e = zip(*sorted(zip(Evals, COHPvalsIJ_e)))
+    Evals = np.array([rao.unit_conversion(e, "Ry", "eV") for e in Evals])
+    COHPvalsIJ_e = np.array(COHPvalsIJ_e, dtype=np.float64)
     return dos_integral(Evals, COHPvalsIJ_e)
 
 """pCOHP: why always positive?"""
@@ -823,27 +929,44 @@ def main(testcase, testmethod,
 def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
                de=0.1, smooth=True, smooth_nstddev=3,
                shift_toefermi=True, invert_COHP=False,
-               emin=-10, emax=10, width=None, output_prefix=None, spin="sum"):
-    Hks, Sks, Cks, Eks, wks, efermi, atomI_orbs, atomJ_orbs = initialize_from_outdir(
-        out_dir=out_dir,
-        atomI_orbs=atomI_orbs,
-        atomJ_orbs=atomJ_orbs,
-        spin=spin,
-    )
-    nlocal = Hks[0].shape[0]
-    requested = atomI_orbs + atomJ_orbs
-    if requested and max(requested) >= nlocal:
-        raise ValueError(f"Requested global NAO index {max(requested)} but ABACUS output has {nlocal} orbitals")
+               emin=-10, emax=10, width=None, output_prefix=None, spin="sum",
+               workers=1, legacy_full_read=False):
+    out_dir = Path(out_dir)
+    log_file = out_dir / "running_scf.log"
+    efermi_values = rao.read_etraj_fromlog(str(log_file), term="fermi") if log_file.exists() else []
+    efermi = efermi_values[-1] if len(efermi_values) else 0.0
+
+    if testmethod.startswith("pCO") or legacy_full_read:
+        Hks, Sks, Cks, Eks, wks, efermi, atomI_orbs, atomJ_orbs = initialize_from_outdir(
+            out_dir=out_dir,
+            atomI_orbs=atomI_orbs,
+            atomJ_orbs=atomJ_orbs,
+            spin=spin,
+        )
+        nlocal = Hks[0].shape[0]
+        requested = atomI_orbs + atomJ_orbs
+        if requested and max(requested) >= nlocal:
+            raise ValueError(f"Requested global NAO index {max(requested)} but ABACUS output has {nlocal} orbitals")
+
     if testmethod.startswith("pCO"):
         Aks = [Sk[:, atomI_orbs + atomJ_orbs] for Sk in Sks]
         e, vals = cal_pCOHPvalsIJ_e(
             Hks=Hks, Sks=Sks, Eks=Eks, Cks=Cks, Aks=Aks, wk=wks,
             atomI_orbs=atomI_orbs, atomJ_orbs=atomJ_orbs, mode=testmethod[1:],
         )
-    elif testmethod.startswith("CO"):
+    elif testmethod.startswith("CO") and legacy_full_read:
         e, vals = cal_COHPvalsIJ_e(
             Hks=Hks, Sks=Sks, Eks=Eks, Cks=Cks, wk=wks,
             atomI_orbs=atomI_orbs, atomJ_orbs=atomJ_orbs, mode=testmethod,
+        )
+    elif testmethod.startswith("CO"):
+        e, vals = cal_COHPvalsIJ_e_streaming(
+            out_dir=out_dir,
+            atomI_orbs=atomI_orbs,
+            atomJ_orbs=atomJ_orbs,
+            mode=testmethod,
+            spin=spin,
+            workers=workers,
         )
     else:
         raise ValueError("Invalid testmethod")
@@ -878,10 +1001,10 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python src/cohp.py --out-dir OUT.ABACUS --atom-i-orbs 0,1,2 --atom-j-orbs 100,101\n"
-            "  python src/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
+            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-orbs 0,1,2 --atom-j-orbs 100,101\n"
+            "  python refs/cohp.py --out-dir OUT.ABACUS --atom-i-index 95 --atom-j-index 98 "
             "--atom-i-orbs 3d --atom-j-orbs 2p\n"
-            "  python src/cohp.py --out-dir OUT.ABACUS --list-orbitals\n"
+            "  python refs/cohp.py --out-dir OUT.ABACUS --list-orbitals\n"
         ),
     )
     parser.add_argument("--out-dir", help="ABACUS OUT.* directory")
@@ -915,6 +1038,17 @@ if __name__ == '__main__':
     )
     parser.add_argument("--output-prefix")
     parser.add_argument("--spin", default="sum", choices=["sum", "up", "down"])
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of parallel worker processes for streaming COHP/COOP parsing",
+    )
+    parser.add_argument(
+        "--legacy-full-read",
+        action="store_true",
+        help="Use the legacy full-matrix reader instead of the streaming COHP/COOP path",
+    )
     parser.set_defaults(shift_toefermi=True)
     args = parser.parse_args()
     if args.out_dir:
@@ -956,6 +1090,8 @@ if __name__ == '__main__':
             shift_toefermi=args.shift_toefermi,
             output_prefix=args.output_prefix,
             spin=args.spin,
+            workers=args.workers,
+            legacy_full_read=args.legacy_full_read,
         )
         raise SystemExit(0)
     

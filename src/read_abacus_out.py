@@ -161,6 +161,56 @@ def read_mat_hs(fhs):
     for i in range(size):
         mat[i, i] = mat[i, i] / 2
     return mat
+
+def read_mat_hs_submatrix(fhs, rows, cols):
+    """Read only selected rows/columns from ABACUS triangular H/S text output.
+
+    The ABACUS ``data-*-H`` and ``data-*-S`` files store the upper triangular
+    matrix row by row.  This helper avoids materializing the full dense matrix
+    when COHP/COOP only needs a small atom-pair block.
+    """
+    rows = [int(i) for i in rows]
+    cols = [int(i) for i in cols]
+    result = np.zeros((len(rows), len(cols)), dtype=np.complex128)
+    targets_by_source_row = {}
+    max_index = -1
+    for iout, row in enumerate(rows):
+        max_index = max(max_index, row)
+        for jout, col in enumerate(cols):
+            max_index = max(max_index, col)
+            if row <= col:
+                source_row, offset, conjugate = row, col - row, False
+            else:
+                source_row, offset, conjugate = col, row - col, True
+            targets_by_source_row.setdefault(source_row, []).append((iout, jout, offset, conjugate))
+
+    size = None
+    with open(fhs, "r") as f:
+        for irow, line in enumerate(f):
+            if irow not in targets_by_source_row and irow > max_index:
+                break
+            parts = line.split()
+            if not parts:
+                continue
+            if irow == 0:
+                size = int(parts[0])
+                values = parts[1:]
+                if max_index >= size:
+                    raise IndexError(f"Requested orbital index {max_index}, but {fhs} has size {size}")
+            else:
+                values = parts
+            for iout, jout, offset, conjugate in targets_by_source_row.get(irow, []):
+                if offset >= len(values):
+                    raise ValueError(
+                        f"Malformed triangular matrix {fhs}: row {irow} has {len(values)} values, "
+                        f"need offset {offset}"
+                    )
+                value = cxx_topycomplex(values[offset])
+                result[iout, jout] = value.conjugate() if conjugate else value
+    if size is None:
+        raise ValueError(f"Empty H/S matrix file: {fhs}")
+    return result
+
 """File: LOWF_K_ik.txt"""
 def read_lowf(flowf):
     """read the lowf matrix in k-space, and the k-vector.
@@ -227,6 +277,109 @@ def read_lowf(flowf):
                 coeffs.extend(float(x) for x in line.split())
     flush_coeffs(ib, coeffs)
     return lowf_k, kvec_c, eband, occ
+
+def read_lowf_selected(flowf, orbital_indices):
+    """Read selected NAO rows from an ABACUS LCAO wavefunction text file."""
+    orbital_indices = [int(i) for i in orbital_indices]
+    nband, nlocal = 0, 0
+    selected = None
+    kvec_c = None
+    eband = None
+    occ = None
+    ib = -1
+    coeff_count = 0
+    complex_values = None
+    complex_seen = None
+    real_values = None
+    real_seen = None
+
+    def ensure_arrays():
+        nonlocal selected, eband, occ
+        if nband > 0 and nlocal > 0 and selected is None:
+            max_index = max(orbital_indices, default=-1)
+            if max_index >= nlocal:
+                raise IndexError(f"Requested orbital index {max_index}, but {flowf} has {nlocal} orbitals")
+            selected = np.zeros((len(orbital_indices), nband), dtype=np.complex128)
+            eband = np.zeros(nband)
+            occ = np.zeros(nband)
+
+    def flush_band():
+        if ib < 0:
+            return
+        if coeff_count == 2 * nlocal:
+            if not np.all(complex_seen):
+                raise ValueError(f"Missing selected complex coefficients in {flowf} for band {ib + 1}")
+            selected[:, ib] = complex_values
+        elif coeff_count == nlocal:
+            if not np.all(real_seen):
+                raise ValueError(f"Missing selected real coefficients in {flowf} for band {ib + 1}")
+            selected[:, ib] = real_values
+        else:
+            raise ValueError(
+                f"Unexpected number of wavefunction coefficients in {flowf}: "
+                f"band {ib + 1} has {coeff_count}, expected {nlocal} or {2 * nlocal}."
+            )
+
+    with open(flowf, "r") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.endswith("(number of bands)"):
+                nband = int(line.split()[0])
+                ensure_arrays()
+                continue
+            if line.endswith("(number of orbitals)"):
+                nlocal = int(line.split()[0])
+                ensure_arrays()
+                continue
+            if line.endswith("(band)"):
+                flush_band()
+                ensure_arrays()
+                ib = int(line.split()[0]) - 1
+                coeff_count = 0
+                complex_values = np.zeros(len(orbital_indices), dtype=np.complex128)
+                complex_seen = np.zeros(len(orbital_indices), dtype=bool)
+                real_values = np.zeros(len(orbital_indices), dtype=np.complex128)
+                real_seen = np.zeros(len(orbital_indices), dtype=bool)
+                continue
+            if line.endswith("(Ry)"):
+                if eband is None:
+                    raise ValueError(f"Encountered band energy before dimensions in {flowf}")
+                eband[ib] = float(line.split()[0])
+                continue
+            if line.endswith("(Occupations)"):
+                if occ is None:
+                    raise ValueError(f"Encountered occupation before dimensions in {flowf}")
+                occ[ib] = float(line.split()[0])
+                continue
+            if not line.endswith(")"):
+                if ib < 0:
+                    fields = line.split()
+                    if len(fields) == 3:
+                        kvec_c = np.array([float(x) for x in fields])
+                    continue
+                arr = np.fromstring(line, sep=" ")
+                start = coeff_count
+                end = start + len(arr)
+                for isel, orbital in enumerate(orbital_indices):
+                    real_pos = 2 * orbital
+                    imag_pos = real_pos + 1
+                    if start <= real_pos < end:
+                        complex_values[isel] = complex_values[isel].real + 1j * complex_values[isel].imag
+                        complex_values[isel] = arr[real_pos - start] + 1j * complex_values[isel].imag
+                    if start <= imag_pos < end:
+                        complex_values[isel] = complex_values[isel].real + 1j * arr[imag_pos - start]
+                        complex_seen[isel] = True
+                    if start <= orbital < end:
+                        real_values[isel] = arr[orbital - start]
+                        real_seen[isel] = True
+                coeff_count = end
+    flush_band()
+    if selected is None or eband is None or occ is None:
+        raise ValueError(f"Failed to read wavefunction dimensions from {flowf}")
+    return selected, kvec_c, eband, occ
+
 """File: QO_ovlp_ik.dat"""
 def read_ao_proj(fao_proj):
     """Read the atomic orbital projection matrix in k-space, and the k-vector.
