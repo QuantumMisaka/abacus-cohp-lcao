@@ -36,7 +36,7 @@ at numerical roundoff level.
 
 The large full-SCF case is documented in this public repository at:
 
-- `examples/fe131_o366_lts3101_scf_122`
+- `examples/validation-bundles/fe131_o366_lts3101_scf_122`
 
 It uses ABACUS LTS 3.10.1, APNS precision orbitals, `ks_solver cusolver`,
 `nbands 3700`, Gaussian smearing with `sigma 0.004`, `nspin 2`, and a `1 2 2`
@@ -56,7 +56,7 @@ Result:
 - elapsed: `481.000 s`
 - Python `ru_maxrss`: `86684 KB`
 - Fermi energy: `2.1538541769 eV`
-- public summary: `examples/fe131_o366_lts3101_scf_122/cohp_streaming_benchmark_summary/latest/benchmark_summary.json`
+- public summary: `examples/validation-bundles/fe131_o366_lts3101_scf_122/cohp_streaming_benchmark_summary/latest/benchmark_summary.json`
 
 The previous large probe baseline for the legacy full-matrix path took about
 12 minutes and required tens of GB of memory. The streaming full-SCF result is

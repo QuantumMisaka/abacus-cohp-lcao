@@ -23,6 +23,9 @@ Included files:
 - `si_si_COHP.dat`: energy-resolved Si-Si COHP data.
 - `si_si_COHP.png`: plotted `-COHP` curve.
 
+The related VASP+LOBSTER comparison artifacts are separated from this minimal
+example and stored in `../validation-bundles/si2_lobster_compare`.
+
 Required pseudopotential and orbital files are included in
 `../data/legacy-si`, and `INPUT` points to that directory with relative paths.
 

@@ -222,13 +222,11 @@ debugging or old-style comparisons only.
 ## 8. Working Examples
 
 - `examples/lts3101_lcao_si2`: minimal Si-Si validation result.
-- `examples/pt111_co_top_nspin1`: Pt(111)-CO top-site result with total Pt-C and
-  Pt-d/C-p channel examples.
-- `examples/lts3101_lcao_si2/lobster_compare`: Si2 ABACUS LCAO-COHP vs
-  fixed-geometry VASP+LOBSTER comparison artifacts.
-- `examples/pt111_co_top_nspin2_lobster_compare`: spin-polarized Pt(111)-CO
-  top-site ABACUS LCAO-COHP vs fixed-geometry VASP+LOBSTER comparison artifacts.
+- `examples/data`: pseudopotential and numerical-orbital files needed by the
+  bundled examples.
+- `examples/validation-bundles`: processed validation artifacts for Si2,
+  Pt(111)-CO, diamond, Ni(100)-CO, and a large Fe/O streaming benchmark.
 
 The bundled examples include final ABACUS input files, lightweight COHP outputs,
-and selected VASP+LOBSTER comparison summaries. Heavy `OUT.ABACUS`,
-VASP, and LOBSTER runtime directories are intentionally excluded.
+and selected comparison summaries. Heavy `OUT.ABACUS`, VASP, and LOBSTER runtime
+directories are intentionally excluded.

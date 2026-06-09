@@ -1,84 +1,45 @@
 # ABACUS LCAO COHP
 
-This repository contains a lightweight ABACUS LCAO-COHP post-processing workflow.
-It extracts Hamiltonian, overlap, wavefunction, eigenvalue, Fermi-level, and k-point
-weight information from ABACUS LCAO SCF outputs, then evaluates atom-pair or
-orbital-group COHP curves.
+Lightweight post-processing tools for ABACUS LCAO calculations. The main
+command reads ABACUS Hamiltonian, overlap, wavefunction, eigenvalue, Fermi-level,
+and k-point output files, then evaluates atom-pair or orbital-channel COHP/COOP
+curves.
 
-This directory is the GitHub publication package for the local ABACUS-COHP
-working tree. In the original workspace, it is also exposed as the shortcut
-`abacus-cohp/abacus-cohp-lcao`, pointing to this standalone repository for
-release and sharing.
-
-The implementation is intended for ABACUS numerical atomic orbital analysis. Its
-COHP values are ABACUS-NAO dependent and should not be assumed numerically
-equivalent to LOBSTER pCOHP.
-
-## ABACUS COHP Versus LOBSTER COHP
-
-The completed Si2, Pt(111)-CO, diamond, and Ni(100)-CO tests support the same
-practical conclusion:
-
-- Implementation: ABACUS COHP uses native ABACUS LCAO/NAO Hamiltonian, overlap,
-  and NAO wavefunctions. LOBSTER uses VASP PAW plane-wave results projected onto
-  local orbitals, so it depends on WAVECAR/CHGCAR, projection basis choice, and
-  spilling quality.
-- Test behavior: both approaches give consistent qualitative bonding/antibonding
-  assignments and chemical trends for Si-Si, C-C, Pt-C, Ni-C, and C-O channels.
-  Their absolute `-ICOHP` values are not on a shared scale; LOBSTER values are
-  typically tens to more than one hundred times larger than the current ABACUS
-  NAO-COHP values in these tests.
-- Scientific use: ABACUS COHP is useful for bond-trend, orbital-channel, and
-  occupied/unoccupied bonding analysis within a fixed ABACUS setup. The reliable
-  ABACUS-vs-LOBSTER comparison is sign, relative trend, and normalized curve
-  shape, not direct equality of absolute `-ICOHP`.
-
-## Project Origin
-
-Project author: QuantumMisaka @PKU @Sidereus-AI @AISI
-
-This repository is based on the ABACUS LCAO-COHP development discussed in
-deepmodeling/abacus-develop issue #3718:
-
-https://github.com/deepmodeling/abacus-develop/issues/3718
-
-The ABACUS-LCAO-COHP implementation and development work should be credited to
-the GitHub user @kirk0830. This repository does not claim original authorship
-of that method implementation; it summarizes usage, packages the key scripts,
-and provides reproducible ABACUS LCAO post-processing examples built on that
-existing work.
+This repository targets **ABACUS numerical atomic orbital analysis**. Its COHP
+values are ABACUS-NAO dependent and should not be treated as numerically
+equivalent to LOBSTER pCOHP or ICOHP values.
 
 ## Contents
 
-- `src/read_abacus_out.py`: ABACUS output readers for `data-*-H/S`, `WFC_NAO_K*.txt`,
-  `kpoints`, `running_scf.log`, and helper utilities.
-- `src/cohp.py`: COHP/COOP and pCOHP-like post-processing routines plus a CLI.
-- `scripts/pt111_co_workflow.py`: reproducible Pt(111)-CO example workflow for SAI
-  Slurm + ABACUS LTS v3.10.1.
-- `scripts/diamond_abacus_pw_lobster_probe.py`: diagnostic workflow used to
-  test whether ABACUS PW outputs can be consumed by LOBSTER or converted to the
-  LOBSTER Generic interface.
-- `scripts/scale_abacus_cohp_to_lobster.py`: empirical readability scaler that
-  maps ABACUS LCAO-COHP `.dat` curves onto LOBSTER-like magnitudes using
-  benchmark `LOBSTER -ICOHP / ABACUS -ICOHP` ratios.
-- `docs/quickstart-abacus-scf-to-cohp.md`: fast user guide for the ABACUS
-  SCF -> `src/cohp.py` post-processing workflow.
-- `docs/`: method notes, validation notes, quick start guide, Pt(111)-CO report,
-  Si2/Pt(111)-CO VASP+LOBSTER comparison reports, diamond ABACUS-vs-LOBSTER
-  report, and Ni(100)-CO ABACUS-vs-LOBSTER report.
-- `examples/`: lightweight result bundles for the two completed examples.
-- `examples/data/`: pseudopotentials and numerical orbitals required by the
-  bundled examples.
+- `src/cohp.py`: user-facing COHP/COOP command-line post-processor.
+- `src/read_abacus_out.py`: ABACUS output readers used by `cohp.py`.
+- `scripts/scale_abacus_cohp_to_lobster.py`: optional empirical scaling helper
+  for LOBSTER-like plot magnitudes.
+- `docs/quickstart-abacus-scf-to-cohp.md`: full first-run guide.
+- `docs/abacus-lcao-cohp-baseline.md`: method notes and interpretation limits.
+- `docs/validation-summary.md`: compact summary of completed validation cases.
+- `examples/lts3101_lcao_si2`: minimal Si2 example result.
+- `examples/data`: pseudopotential and numerical-orbital subset used by bundled
+  examples.
+- `examples/validation-bundles`: processed validation artifacts; raw DFT output
+  directories are intentionally excluded.
 
-The `src/` directory is the core COHP calculation layer. In normal use,
-`read_abacus_out.py` should not be called manually except for reader tests;
-`cohp.py` is the user-facing post-processing command.
+## Install
+
+Use a Python environment with NumPy and Matplotlib:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Optional example-generation workflows may require ASE and an ABACUS executable,
+but the core post-processor starts from an already completed ABACUS LCAO SCF
+output directory.
 
 ## Required ABACUS Output
 
-This workflow starts from a completed ABACUS LCAO SCF calculation, not from a
-plane-wave calculation. The SCF input must request the matrices and NAO
-wavefunctions needed by the post-processor:
+The SCF `INPUT` must use an LCAO basis and request the matrix and wavefunction
+files consumed by this post-processor:
 
 ```text
 basis_type lcao
@@ -87,91 +48,28 @@ out_wfc_lcao 1
 out_app_flag 1
 ```
 
-All four lines above should be treated as the minimal COHP-output block for this
-repository. The earlier documentation only emphasized `out_mat_hs 1 8` and
-`out_wfc_lcao 1`; the completed Si2, Pt(111)-CO, diamond, and Ni(100)-CO tests
-all used `out_app_flag 1` as well. ABACUS documents `out_app_flag` as the switch
-controlling append-style output for LCAO `H(k)`, `S(k)`, and `wfc(k)` matrix
-families together with `out_mat_hs` and `out_wfc_lcao`. Keeping it explicit makes
-the generated `OUT.ABACUS` layout match the reader expectations used here.
+After SCF, `OUT.ABACUS` should contain at least:
 
-Relevant ABACUS documentation:
+```text
+OUT.ABACUS/data-0-H
+OUT.ABACUS/data-0-S
+OUT.ABACUS/WFC_NAO_K1.txt
+OUT.ABACUS/kpoints
+OUT.ABACUS/running_scf.log
+```
 
-- `out_mat_hs`: https://abacus.deepmodeling.com/en/latest/advanced/elec_properties/hs_matrix.html
-- `out_wfc_lcao` and `out_app_flag`: https://abacus.deepmodeling.com/en/latest/advanced/input_files/input-main.html
+Multi-k calculations contain one `data-*-H/S` pair and one `WFC_NAO_K*.txt`
+file per k point.
 
-After SCF, the target `OUT.ABACUS` directory must contain:
+## Minimal COHP Usage
 
-- `data-*-H` and `data-*-S`: Hamiltonian and overlap matrices for each k point.
-- `WFC_NAO_K*.txt` or `WFC_NAO_GAMMA*.txt`: LCAO eigenvectors in the ABACUS NAO basis.
-- `kpoints`: k-point weights.
-- `running_scf.log`: Fermi level and band information.
-
-The recommended interface uses 1-based ABACUS atom indices plus shell labels.
-For example, Fe-O `d-p` COHP can be requested as
-`--atom-i-index 95 --atom-j-index 98 --atom-i-orbs 3d --atom-j-orbs 2p`.
-Labels such as `3d`, `2p`, and `4s` are accepted as chemistry-friendly aliases;
-internally they select all ABACUS NAOs of the matching angular-momentum channel
-on that atom. Multiple channels can be comma-separated, for example
-`--atom-i-orbs 3p,3d,4s`.
-
-To inspect what the script can infer from `STRU`, `INPUT`, and `orbital_dir`,
-run:
+Inspect available atom shell channels:
 
 ```bash
 python src/cohp.py --out-dir /path/to/OUT.ABACUS --list-orbitals
 ```
 
-The legacy global-NAO mode is still supported: if `--atom-i-index` and
-`--atom-j-index` are omitted, `--atom-i-orbs` and `--atom-j-orbs` are interpreted
-as zero-based global ABACUS NAO indices such as `0,1,2`.
-
-For a complete first-run workflow, start from
-`docs/quickstart-abacus-scf-to-cohp.md`.
-
-## Pseudopotentials and Orbitals
-
-The Pt(111)-CO example uses the ABACUS APNS PP/ORB library. The upstream dataset
-used for this repository is:
-
-```text
-https://store.aissquare.com/datasets/dc875646-a526-41f1-a180-d54b218fc80a/ABACUS-APNS-PPORBs-v1.zip
-```
-
-Only the files needed by the examples are included under `examples/data/`:
-
-- `examples/data/PP`: Pt, C, and O pseudopotentials.
-- `examples/data/PP`: Pt, Ni, C, and O pseudopotentials.
-- `examples/data/ORB`: compact Pt, Ni, C, and O orbitals for relaxation.
-- `examples/data/apns-orbitals-precision-v1`: precision Pt, Ni, C, and O
-  orbitals for final SCF and COHP output.
-- `examples/data/legacy-si`: the Si pseudopotential and orbital used by the Si2
-  validation example.
-
-Example `INPUT` files use relative paths such as `../data/PP` and
-`../data/apns-orbitals-precision-v1`, so they can be run from their own example
-directories without relying on a user-specific `~/PP_ORB` location.
-
-## Minimal COHP Usage
-
-Run on an ABACUS `OUT.ABACUS` directory containing:
-
-- `data-*-H`
-- `data-*-S`
-- `WFC_NAO_K*.txt` or compatible text wavefunction files
-- `kpoints`
-- `running_scf.log`
-
-The corresponding SCF `INPUT` must include:
-
-```text
-basis_type lcao
-out_mat_hs 1 8
-out_wfc_lcao 1
-out_app_flag 1
-```
-
-Example:
+Run a pair COHP using 1-based ABACUS atom indices and shell labels:
 
 ```bash
 env MPLBACKEND=Agg python src/cohp.py \
@@ -184,200 +82,79 @@ env MPLBACKEND=Agg python src/cohp.py \
   --de 0.05 \
   --smooth-nstddev 4 \
   --invert \
-  --output-prefix my_pair_COHP
+  --output-prefix pair_COHP
 ```
 
-This command writes:
+For orbital-channel analysis, use labels such as `3d`, `2p`, or comma-separated
+groups such as `3p,3d,4s`:
 
-- `my_pair_COHP.dat`: raw two-column absolute-energy and COHP data.
-- `my_pair_COHP_EminusEf.dat`: two-column `E - E_Fermi` and COHP data, written
-  by default to match the usual VASP+LOBSTER COHP energy reference.
-- `my_pair_COHP.meta.json`: Fermi energy, output file paths, method, spin, and
+```bash
+python src/cohp.py --out-dir /path/to/OUT.ABACUS \
+  --atom-i-index 95 \
+  --atom-j-index 98 \
+  --atom-i-orbs 3d \
+  --atom-j-orbs 2p \
+  --spin sum \
+  --invert \
+  --output-prefix Fe_O_d_p
+```
+
+If atom indices are omitted, `--atom-i-orbs` and `--atom-j-orbs` keep the legacy
+zero-based global NAO-index mode, for example `0,1,2`.
+
+## Outputs
+
+The command writes:
+
+- `pair_COHP.dat`: raw two-column absolute-energy and COHP data.
+- `pair_COHP_EminusEf.dat`: two-column `E - E_Fermi` and COHP data, written by
+  default for easier comparison with common COHP plotting conventions.
+- `pair_COHP.meta.json`: Fermi energy, output file paths, method, spin, and
   smoothing settings.
-- `my_pair_COHP.png`: plotted curve. With `--invert`, the figure follows the
-  common `-COHP` plotting convention where occupied bonding contributions appear
-  positive.
+- `pair_COHP.png`: plotted curve. With `--invert`, the figure follows the
+  common `-COHP` convention where positive occupied area is usually interpreted
+  as bonding contribution.
 
-The command-line log prints `E_Fermi` and the raw, shifted, metadata, and plot
-paths. Add `--no-shift-to-efermi` to suppress `*_EminusEf.dat` and plot on the
-absolute-energy axis.
+Add `--no-shift-to-efermi` to suppress `*_EminusEf.dat` and plot on the absolute
+energy axis.
 
-For spin-polarized ABACUS outputs:
+## Performance
 
-```bash
-python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-index 95 \
-  --atom-j-index 98 \
-  --atom-i-orbs 3d \
-  --atom-j-orbs 2p \
-  --spin up --output-prefix pair_up
+`src/cohp.py` uses the streaming COHP/COOP path by default. It reads only the
+selected H/S sub-block and selected WFC rows, which keeps memory use low for
+large ABACUS outputs.
 
-python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-index 95 \
-  --atom-j-index 98 \
-  --atom-i-orbs 3d \
-  --atom-j-orbs 2p \
-  --spin down --output-prefix pair_down
+Use `--workers N` to parallelize k-point parsing. Use `--legacy-full-read` only
+for debugging or old full-matrix comparisons.
 
-python src/cohp.py --out-dir /path/to/OUT.ABACUS \
-  --atom-i-index 95 \
-  --atom-j-index 98 \
-  --atom-i-orbs 3d \
-  --atom-j-orbs 2p \
-  --spin sum --output-prefix pair_sum
-```
+## Optional LOBSTER-Like Scale
 
-## LOBSTER-like Empirical Scale
-
-After generating a raw two-column `.dat` curve with `src/cohp.py`, users who
-want a LOBSTER-like reading magnitude can apply the benchmark scale helper:
+After generating a raw two-column `.dat` curve, apply an empirical scale preset
+if you want a LOBSTER-like plot magnitude:
 
 ```bash
-python scripts/scale_abacus_cohp_to_lobster.py si_si_COHP.dat \
+python scripts/scale_abacus_cohp_to_lobster.py pair_COHP.dat \
   --preset Si-Si \
-  --efermi 7.111283804 \
-  --output-prefix si_si_lobster_like
+  --efermi 0.0 \
+  --output-prefix pair_lobster_like
 ```
 
-For a file whose second column is already `-COHP` on an `E-E_F` axis:
+Use `--list-presets` to inspect available channels. This helper is for
+readability and validation plots only; it does not make ABACUS NAO-COHP and
+LOBSTER pCOHP the same observable.
 
-```bash
-python scripts/scale_abacus_cohp_to_lobster.py pair_minus_cohp.dat \
-  --preset Pt-C \
-  --input-convention minus-cohp \
-  --efermi 0.0
-```
+## Scientific Boundary
 
-If the input is a `*_EminusEf.dat` file, use `--efermi 0.0` to avoid subtracting
-the Fermi energy twice.
+Use ABACUS LCAO-COHP for trends inside a fixed ABACUS setup: same ABACUS
+version, pseudopotentials, NAO basis, and SCF settings. The robust interpretation
+is the sign, occupied/unoccupied energy distribution, relative bond trends, and
+orbital-channel contributions. Do not compare absolute ICOHP values directly
+against LOBSTER without an explicit benchmark and clear caveat.
 
-Use `--list-presets` to inspect available channels. The script writes:
+## Documentation
 
-- `*_lobster_like.dat`: `energy_ev source_value minus_cohp lobster_like_minus_cohp`
-- `*_lobster_like.json`: selected preset, scale factor, integrated `-ICOHP`,
-  and the interpretation warning
-
-The scale is empirical and intended for readability and plot comparison only.
-It does not make ABACUS NAO-COHP and LOBSTER pCOHP strict numerical equivalents.
-
-## Pt(111)-CO Workflow
-
-The SAI-oriented workflow builds Pt(111) 2x2x4 + top-site CO with vacuum along
-ABACUS B direction, writes ABACUS relax/final-SCF inputs, and summarizes COHP.
-
-```bash
-/home/pku-jianghong/liuzhaoqing/.conda/envs/ase/bin/python \
-  scripts/pt111_co_workflow.py prepare
-```
-
-The generated Slurm scripts use:
-
-- `module load abacus/LTSv3.10.1-sm70-auto`
-- 4V100 partition
-- 1 GPU
-- no `mpirun`
-- `OMP_NUM_THREADS=8`
-- `ks_solver cusolver`
-
-After relax finishes:
-
-```bash
-python scripts/pt111_co_workflow.py prepare-final --nspin 1
-python scripts/pt111_co_workflow.py analyze --nspin 1
-```
-
-Use `--nspin 2` for the spin-polarized branch.
-
-## Included Examples
-
-### ABACUS LTS 3.10.x Si2
-
-Located in `examples/lts3101_lcao_si2`.
-
-This example confirms that ABACUS LTS 3.10.x LCAO SCF output can be processed
-from `data-*-H/S` and `WFC_NAO_K*.txt` into a Si-Si COHP curve.
-
-The `examples/lts3101_lcao_si2/lobster_compare` subdirectory contains the
-completed fixed-geometry VASP+LOBSTER comparison artifacts. The test used
-LOBSTER Bunge basis with 1.46% charge spilling and found consistent qualitative
-occupied Si-Si bonding, while absolute -ICOHP values remain method-scale
-dependent. See `docs/si2-abacus-vs-vasp-lobster-cohp.md` and
-`docs/vasp-lobster-case-tests-summary.md`.
-
-### Pt(111)-CO Top Site, nspin=1
-
-Located in `examples/pt111_co_top_nspin1`.
-
-Key result:
-
-- Top Pt-C distance: about `1.8479 A`
-- C-O distance: about `1.1500 A`
-- top Pt-C `-ICOHP`: `0.058247`
-- Pt-d/C-p contribution dominates the occupied Pt-C bonding contribution.
-
-See `docs/pt111-co-cohp-results.md` for the full interpretation.
-
-### Pt(111)-CO Top Site, nspin=2 VASP+LOBSTER Comparison
-
-Located in `examples/pt111_co_top_nspin2_lobster_compare`.
-
-This bundle contains the completed fixed-geometry VASP+LOBSTER comparison
-artifacts for the spin-polarized Pt(111)-CO top-site model. The test used
-LOBSTER `pbeVaspFit2015` basis with 2.38% charge spilling. ABACUS and LOBSTER
-agree qualitatively on occupied bonding for both Pt-C and C-O channels, while
-absolute -ICOHP scales differ strongly and should not be compared directly
-without normalization.
-
-See `docs/pt111-co-abacus-vs-lobster-cohp.md` and
-`docs/vasp-lobster-case-tests-summary.md`.
-
-### Diamond ABACUS vs VASP+LOBSTER
-
-Located in `examples/diamond_cohp_compare`.
-
-This example compares ABACUS LCAO-COHP with VASP+LOBSTER pCOHP for nearest
-neighbor C-C bonding in diamond. The bundled result demonstrates that the two
-methods agree qualitatively on occupied bonding and unoccupied antibonding
-features, while absolute integrated values are not on a common numerical scale.
-
-See `docs/diamond-abacus-vs-vasp-lobster-cohp.md`.
-
-### Ni(100)-CO Top Site
-
-Located in `examples/ni100_co_top`.
-
-This example compares spin-polarized ABACUS LCAO-COHP with VASP+LOBSTER for a
-Ni(100)-CO adsorption model. It includes efficiency and precision ABACUS orbital
-checks, VASP+LOBSTER processed reference curves, and a magnetism/comparability
-note. The robust chemical conclusions are the weak Ni-C adsorption bond, the
-strong C-O internal bond, and the lack of a transferable absolute ICOHP scale
-between ABACUS and LOBSTER.
-
-See `docs/ni100-co-abacus-vs-lobster-cohp.md` and
-`docs/ni100-co-magnetism-and-cohp-comparability-note.md`.
-
-## ABACUS PW and LOBSTER Feasibility Note
-
-The report `docs/diamond-abacus-pw-lobster-feasibility.md` records a diamond
-test of ABACUS PW outputs against LOBSTER. The practical conclusion is:
-
-- LOBSTER does not directly recognize ABACUS PW outputs.
-- ABACUS `out_wfc_pw 2` can provide the plane-wave coefficients needed to build
-  a LOBSTER Generic-style package, but this is only an interface path.
-- LOBSTER's standard PW workflows require PAW pseudopotential data. QE itself
-  supports NC, US, and PAW pseudopotentials, but LOBSTER's QE interface expects
-  QE+PAW data rather than arbitrary QE PW output.
-- The APNS `C.upf` used in the ABACUS PW probe is norm-conserving, so it lacks
-  the PAW augmentation/projector/all-electron partial-wave data required for a
-  scientifically strict LOBSTER COHP calculation.
-
-This reinforces the intended scope of this repository: production use here is
-ABACUS LCAO SCF -> `src/cohp.py` post-processing. ABACUS PW -> LOBSTER would be
-a separate converter/exporter project with a consistent PAW data path.
-
-## Development Checks
-
-```bash
-python -m py_compile src/cohp.py src/read_abacus_out.py scripts/pt111_co_workflow.py
-python src/read_abacus_out.py
-```
+- Start with `docs/quickstart-abacus-scf-to-cohp.md`.
+- Read `docs/abacus-lcao-cohp-baseline.md` for method positioning and limits.
+- Read `docs/validation-summary.md` for completed Si2, Pt(111)-CO, diamond,
+  Ni(100)-CO, and Fe/O streaming benchmark summaries.
+- Historical case reports and exploratory notes are kept in `docs/archive/`.
