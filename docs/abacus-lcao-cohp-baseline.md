@@ -32,7 +32,7 @@ COHP_IJ(E) =
   sum_{i in I, j in J} Re[c*_{Ii,n}(k) H_{Ii,Jj}(k) c_{Jj,n}(k)]
 ```
 
-常用绘图习惯是画 `-COHP`，使成键贡献显示在正方向。积分到费米能级的量通常称为 ICOHP，可作为键强弱的半定量指标。
+常用绘图习惯是画 `-COHP`，使成键贡献显示在正方向。积分到费米能级的量通常称为 ICOHP，可作为键强弱的半定量指标。本项目默认报告 `ICOHP = integral COHP(E)dE` 和 `-ICOHP = integral -COHP(E)dE`；其中 `-ICOHP` 直接对应图中正成键面积的符号习惯。
 
 ## 2. 可解释性边界
 
@@ -99,6 +99,8 @@ env MPLBACKEND=Agg python src/cohp.py \
 3. 对轨道对求和，得到每个 `(n,k)` 上的原子对贡献。
 4. 按 k 点权重汇总，并按本征能量聚合。
 5. 对能量轴做 zero-padding 和可选 Gaussian smoothing。
+
+当前 ICOHP 默认在 zero-padding 后、Gaussian smoothing 前的 COHP 曲线上做梯形积分到费米能级；作图用高斯展宽只影响图像和两列曲线输出的平滑外观，不作为默认 ICOHP 数值来源。
 6. 输出曲线数据和图像。
 
 脚本同时保留 COOP 和 pCOHP-like 实验函数。pCOHP-like 路线用 `A^dagger C` 构造投影表示，但当前 `A` 仍主要来自 ABACUS NAO 重叠矩阵子块，因此不能等同于 LOBSTER 的标准外部投影基。

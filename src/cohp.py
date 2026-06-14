@@ -299,6 +299,55 @@ def dos_integral(x, y):
 
     return unique_x, unique_y
 
+def _trapezoid(y: np.ndarray, x: np.ndarray) -> float:
+    integrator = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+    return float(integrator(y, x))
+
+
+def integrate_icohp(energy, values, efermi=0.0, input_convention="cohp"):
+    """Integrate occupied COHP and report both ICOHP and -ICOHP conventions."""
+    if input_convention not in {"cohp", "minus-cohp"}:
+        raise ValueError("input_convention must be 'cohp' or 'minus-cohp'")
+
+    energy = np.asarray(energy, dtype=float)
+    values = np.asarray(values, dtype=float)
+    if energy.shape != values.shape:
+        raise ValueError("energy and values must have the same shape")
+
+    indices = np.argsort(energy)
+    energy = energy[indices]
+    values = values[indices]
+    cohp_values = -values if input_convention == "minus-cohp" else values
+    occupied = energy <= float(efermi)
+    occupied_energy = energy[occupied]
+    occupied_cohp = cohp_values[occupied]
+
+    if len(occupied_energy) < 2:
+        icohp = float("nan")
+    else:
+        icohp = _trapezoid(occupied_cohp, occupied_energy)
+
+    return {
+        "icohp": float(icohp),
+        "minus_icohp": float(-icohp),
+        "efermi_ev": float(efermi),
+        "input_convention": input_convention,
+        "integration": "trapezoid",
+        "energy_window_ev": {
+            "min": float(occupied_energy[0]) if len(occupied_energy) else float("nan"),
+            "max": float(occupied_energy[-1]) if len(occupied_energy) else float("nan"),
+            "occupied_condition": "energy <= efermi",
+        },
+        "points_total": int(len(energy)),
+        "points_occupied": int(len(occupied_energy)),
+        "uses_plot_smoothing": False,
+    }
+
+
+def _icohp_annotation(icohp):
+    return f"-ICOHP = {icohp['minus_icohp']:.6f} eV"
+
+
 """There is a bug in the following function"""
 import matplotlib.pyplot as plt
 def _visible_energy_window(x, y, emin=None, emax=None):
@@ -317,7 +366,8 @@ def draw_COHP(x, y,
               emin = None, emax = None,
               width = None,
               shift_toefermi: bool = True, efermi = None,
-              invert_COHP: bool = True):
+              invert_COHP: bool = True,
+              annotation: str | None = None):
     # set x and y
     e_shifted = x - efermi if shift_toefermi and efermi is not None else x
     COHPvalsIJ_e = -y if invert_COHP else y
@@ -343,6 +393,17 @@ def draw_COHP(x, y,
 
     xlabel = testmethod if not invert_COHP else "-"+testmethod
     plt.xlabel(xlabel, fontsize=15)
+    if annotation:
+        plt.text(
+            0.03,
+            0.97,
+            annotation,
+            transform=plt.gca().transAxes,
+            va="top",
+            ha="left",
+            fontsize=12,
+            bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "alpha": 0.75, "edgecolor": "0.8"},
+        )
     # if width < 1e-3, use scientific notation
     if width <= 1e-3:
         plt.ticklabel_format(axis='x', style='sci', scilimits=(0,0))
@@ -830,7 +891,7 @@ def _cohp_output_paths(output_prefix):
 
 def _write_cohp_outputs(output_prefix, energy, values, efermi, *,
                         shift_toefermi=True, testmethod="COHP", spin="sum",
-                        de=0.1, smooth=True, smooth_nstddev=3):
+                        de=0.1, smooth=True, smooth_nstddev=3, icohp=None):
     raw_path, shifted_path, metadata_path = _cohp_output_paths(output_prefix)
     np.savetxt(
         raw_path,
@@ -871,6 +932,8 @@ def _write_cohp_outputs(output_prefix, energy, values, efermi, *,
         "smooth_nstddev": float(smooth_nstddev),
         "files": files,
     }
+    if icohp is not None:
+        metadata["icohp"] = icohp
     metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")
     return metadata
 
@@ -880,6 +943,9 @@ def _print_cohp_output_summary(metadata, plot_path):
     print(f"raw COHP: {metadata['files']['raw']['path']}", file=sys.stderr)
     if "shifted" in metadata["files"]:
         print(f"E-E_Fermi COHP: {metadata['files']['shifted']['path']}", file=sys.stderr)
+    if "icohp" in metadata:
+        print(f"ICOHP = {metadata['icohp']['icohp']:.6f} eV", file=sys.stderr)
+        print(f"-ICOHP = {metadata['icohp']['minus_icohp']:.6f} eV", file=sys.stderr)
     print(f"metadata: {metadata['files']['metadata']['path']}", file=sys.stderr)
     print(f"plot: {plot_path}", file=sys.stderr)
 
@@ -930,7 +996,7 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
                de=0.1, smooth=True, smooth_nstddev=3,
                shift_toefermi=True, invert_COHP=False,
                emin=-10, emax=10, width=None, output_prefix=None, spin="sum",
-               workers=1, legacy_full_read=False):
+               workers=1, legacy_full_read=False, icohp_label=True):
     out_dir = Path(out_dir)
     log_file = out_dir / "running_scf.log"
     efermi_values = rao.read_etraj_fromlog(str(log_file), term="fermi") if log_file.exists() else []
@@ -971,8 +1037,13 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
     else:
         raise ValueError("Invalid testmethod")
 
-    e, vals = rao.zero_padding(xmin=np.min(e) * 1.1, xmax=np.max(e) * 1.1, dx=de, x=e, y=vals)
-    vals = rao.Gauss_smoothing(x=e, y=vals, sigma=smooth_nstddev * de, normalize=False) if smooth else vals
+    e, vals_unsmoothed = rao.zero_padding(xmin=np.min(e) * 1.1, xmax=np.max(e) * 1.1, dx=de, x=e, y=vals)
+    icohp = integrate_icohp(e, vals_unsmoothed, efermi=efermi, input_convention="cohp")
+    vals = (
+        rao.Gauss_smoothing(x=e, y=vals_unsmoothed, sigma=smooth_nstddev * de, normalize=False)
+        if smooth
+        else vals_unsmoothed
+    )
     output_prefix = output_prefix or testmethod
     metadata = _write_cohp_outputs(
         output_prefix,
@@ -985,11 +1056,13 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
         de=de,
         smooth=smooth,
         smooth_nstddev=smooth_nstddev,
+        icohp=icohp,
     )
     testmethod_for_plot = output_prefix
     draw_COHP(
         e, vals, testmethod=testmethod_for_plot, emin=emin, emax=emax, width=width,
         shift_toefermi=shift_toefermi, efermi=efermi, invert_COHP=invert_COHP,
+        annotation=_icohp_annotation(icohp) if icohp_label else None,
     )
     _print_cohp_output_summary(metadata, Path(f"{testmethod_for_plot}.png"))
     return e, vals
@@ -1057,7 +1130,14 @@ if __name__ == '__main__':
         action="store_true",
         help="Force the legacy full-matrix reader instead of the default streaming COHP/COOP path",
     )
+    parser.add_argument(
+        "--no-icohp-label",
+        action="store_false",
+        dest="icohp_label",
+        help="Do not annotate the automatic COHP plot with the occupied -ICOHP value",
+    )
     parser.set_defaults(shift_toefermi=True)
+    parser.set_defaults(icohp_label=True)
     args = parser.parse_args()
     if args.out_dir:
         if args.list_orbitals:
@@ -1100,6 +1180,7 @@ if __name__ == '__main__':
             spin=args.spin,
             workers=args.workers,
             legacy_full_read=args.legacy_full_read,
+            icohp_label=args.icohp_label,
         )
         raise SystemExit(0)
     

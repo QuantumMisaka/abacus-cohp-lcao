@@ -104,15 +104,34 @@ usually interpreted as bonding contribution. Without `--invert`, the raw COHP
 sign is written.
 `si_si_COHP.dat` keeps the raw absolute-energy COHP data. `si_si_COHP_EminusEf.dat`
 uses `E - E_Fermi`, matching the usual VASP+LOBSTER COHP energy reference.
-`si_si_COHP.meta.json` records the Fermi energy, output files, method, spin, and
-smoothing settings. The command-line log also prints `E_Fermi` and the generated
-raw, shifted, metadata, and plot paths.
+`si_si_COHP.meta.json` records the Fermi energy, output files, method, spin,
+smoothing settings, and occupied `ICOHP/-ICOHP`. The command-line log also
+prints `E_Fermi`, `ICOHP`, `-ICOHP`, and the generated raw, shifted, metadata,
+and plot paths. The automatic plot labels `-ICOHP` by default.
+
+`ICOHP/-ICOHP` is integrated from the COHP post-processing curve before
+Gaussian smoothing is applied for plotting. The figure can still be smoothed for
+readability, but the metadata and plot label are not inferred from the smoothed
+filled area.
 
 To keep only the absolute-energy output and plot without writing
 `*_EminusEf.dat`, add:
 
 ```bash
 --no-shift-to-efermi
+```
+
+To hide the `-ICOHP` plot label, add:
+
+```bash
+--no-icohp-label
+```
+
+To integrate an existing two-column COHP curve separately:
+
+```bash
+python scripts/integrate_icohp.py si_si_COHP.dat --efermi 7.111283804
+python scripts/integrate_icohp.py si_si_COHP_EminusEf.dat
 ```
 
 ## 4. Spin-Polarized Output

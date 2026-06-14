@@ -110,13 +110,23 @@ The command writes:
 - `pair_COHP_EminusEf.dat`: two-column `E - E_Fermi` and COHP data, written by
   default for easier comparison with common COHP plotting conventions.
 - `pair_COHP.meta.json`: Fermi energy, output file paths, method, spin, and
-  smoothing settings.
+  smoothing settings, plus occupied `ICOHP/-ICOHP`.
 - `pair_COHP.png`: plotted curve. With `--invert`, the figure follows the
   common `-COHP` convention where positive occupied area is usually interpreted
-  as bonding contribution.
+  as bonding contribution. The plot labels `-ICOHP` by default.
 
 Add `--no-shift-to-efermi` to suppress `*_EminusEf.dat` and plot on the absolute
 energy axis.
+Add `--no-icohp-label` to hide the plot annotation.
+
+The reported `ICOHP/-ICOHP` is integrated before Gaussian smoothing is applied
+for plotting; it is not inferred from the smoothed filled area. Existing
+two-column curves can be integrated directly:
+
+```bash
+python scripts/integrate_icohp.py pair_COHP.dat --efermi 7.111283804
+python scripts/integrate_icohp.py pair_COHP_EminusEf.dat
+```
 
 ## Performance
 

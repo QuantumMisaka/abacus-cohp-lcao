@@ -7,9 +7,13 @@ import argparse
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+import sys
 
 import numpy as np
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+import cohp as cohp_tools  # noqa: E402
 
 SCALE_BASIS = "empirical_lobster_minus_icohp_over_abacus_minus_icohp"
 HELP_EPILOG = """\
@@ -139,10 +143,12 @@ def load_two_column_curve(path: Path) -> tuple[np.ndarray, np.ndarray]:
 
 
 def integrate_occupied(energy: np.ndarray, curve: np.ndarray, efermi: float) -> float:
-    occupied = energy <= efermi
-    if np.count_nonzero(occupied) < 2:
-        return float("nan")
-    return float(np.trapz(curve[occupied], energy[occupied]))
+    return cohp_tools.integrate_icohp(
+        energy,
+        curve,
+        efermi=efermi,
+        input_convention="minus-cohp",
+    )["minus_icohp"]
 
 
 def scale_curve(
