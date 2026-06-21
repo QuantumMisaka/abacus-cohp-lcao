@@ -36,6 +36,13 @@ Optional example-generation workflows may require ASE and an ABACUS executable,
 but the core post-processor starts from an already completed ABACUS LCAO SCF
 output directory.
 
+For experimental structure-generation or PW-to-LOBSTER diagnostic workflows,
+install the optional dependencies separately:
+
+```bash
+python -m pip install -r requirements-experimental.txt
+```
+
 ## Required ABACUS Output
 
 The SCF `INPUT` must use an LCAO basis and request the matrix and wavefunction

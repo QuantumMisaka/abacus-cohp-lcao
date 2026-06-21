@@ -56,13 +56,13 @@ COHP 后处理使用 `src/cohp.py` 完成。脚本从 final SCF 的 `OUT.ABACUS`
 | nspin=2 | 1.768847 | 1.8479 | 1.1500 | top Pt-d / C-s | down | 0.013700 |
 | nspin=2 | 1.768847 | 1.8479 | 1.1500 | top Pt-d / C-s | sum | 0.027400 |
 
-说明：绘图输出为 `-COHP`；数值表中的 `-ICOHP` 是 occupied energy range 上的 `-int COHP(E)dE`。当前 COHP 脚本遵循项目既有定义，不显式乘占据数。因此 nspin=2 的 up/down 单通道值与 nspin=1 更适合直接比较；nspin=2 的 `sum` 是两个 spin 通道相加。
+说明：绘图输出为 `-COHP`；数值表中的 `-ICOHP` 是 occupied energy range 上的 `-int COHP(E)dE`。本页表格保留历史 `runs/` 输出，生成时 standalone 脚本对 `nspin=1, spin=sum` 尚未显式乘自旋简并因子 2，因此表中 nspin=1 数值更接近 nspin=2 的 up/down 单通道。当前 `refs/cohp.py` 与 mirror `src/cohp.py` 已统一到 PyATB 约定：`nspin=1, spin=sum` 输出总谱并乘 2；`nspin=2, spin=sum` 为 up/down 两通道相加且不再额外乘 2。重新生成本页数据时，nspin=1 的总谱 `-ICOHP` 应与 nspin=2 的 `sum` 比较。
 
 ## 科学结论
 
 - nspin=1 和 nspin=2 的 top Pt-C 几何几乎相同：Pt-C 约 1.848 A，C-O 约 1.150 A。
 - nspin=2 final SCF 的总磁矩最终降至约 `-7e-5 Bohr mag/cell`，说明该 Pt(111)-CO top 构型在当前设置下没有稳定自旋极化。
-- nspin=2 的 up/down COHP 几乎完全相同；与 nspin=1 的 top Pt-C `-ICOHP` 也一致到 1e-5 量级。因此自旋设置没有改变 Pt-C 成键图像。
+- nspin=2 的 up/down COHP 几乎完全相同；在历史表格的旧归一化口径下，它们与 nspin=1 的 top Pt-C `-ICOHP` 也一致到 1e-5 量级。按当前总谱口径重新生成时，应比较 nspin=1 `sum` 与 nspin=2 `sum`。
 - top Pt-C 的主要 occupied bonding 贡献来自 Pt-d/C-p 通道：nspin=1 中 `0.038627 / 0.058247 ~= 66%`。Pt-d/C-s 贡献约 `24%`。这与 CO 在 Pt top 位吸附时 Pt d 态与 CO 2pi*/5sigma 相关前线轨道相互作用主导的图像相符，但这里应表述为 ABACUS-NAO COHP 下的定性结论。
 - 除 top Pt-C 外，最近的其它 Pt-C 距离约 3.46 A，明显大于成键距离，因此本构型中可解释的 Pt-C COHP 主要集中在正下方 top Pt-C 对。
 

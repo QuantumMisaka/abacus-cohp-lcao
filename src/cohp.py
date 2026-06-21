@@ -7,6 +7,11 @@ import sys
 import read_abacus_out as rao
 import numpy as np
 
+SPIN_TOTAL_CONVENTION = (
+    "nspin=1 spin=sum includes spin degeneracy factor 2; "
+    "nspin=2 spin=sum is up + down with no extra factor"
+)
+
 """COHP"""
 def cal_COHPmatskIJ_e_ij(Hk, Sk, Ck, atomI_orbs, atomJ_orbs, mode="COHP"):
     """Calculate the energy-resolved COHP or COOP matrix for all bands, every selected orbital pair of the atom I and J, and a k-point.
@@ -113,6 +118,39 @@ def _wfc_file_for_index(out_dir, ik):
         out_dir / f"LOWF_GAMMA_S{ik + 1}.dat",
     ])
 
+def _spin_degeneracy_factor(nspin, spin):
+    return 2.0 if nspin == 1 and spin.lower() == "sum" else 1.0
+
+def _infer_nspin_from_outdir(out_dir):
+    out_dir = Path(out_dir)
+    h_files = _sorted_matrix_files(out_dir, "H")
+    s_files = _sorted_matrix_files(out_dir, "S")
+    if len(h_files) == 0:
+        return None
+    if len(h_files) != len(s_files):
+        raise FileNotFoundError(f"Cannot find matching data-*-H/data-*-S files in {out_dir}")
+
+    nmatrix = len(h_files)
+    kpoints_file = out_dir / "kpoints"
+    if kpoints_file.exists():
+        nk = len(rao.read_kpoints(str(kpoints_file), as_dict=False)[0])
+    else:
+        nk = nmatrix
+
+    if nmatrix == nk:
+        return 1
+    if nmatrix == 2 * nk:
+        return 2
+    raise ValueError(
+        f"Cannot map {nmatrix} H/S matrices onto {nk} k-point weights in {out_dir}"
+    )
+
+def _spin_context_from_outdir(out_dir, spin):
+    nspin = _infer_nspin_from_outdir(out_dir)
+    if nspin is None:
+        return None, None
+    return nspin, _spin_degeneracy_factor(nspin, spin)
+
 def _matrix_file_selection(out_dir, spin="sum"):
     out_dir = Path(out_dir)
     h_files = _sorted_matrix_files(out_dir, "H")
@@ -149,13 +187,14 @@ def _matrix_file_selection(out_dir, spin="sum"):
         raise ValueError(f"Requested spin={spin}, but {out_dir} contains nspin=1 output")
     else:
         indices = range(nmatrix)
+    spin_factor = _spin_degeneracy_factor(nspin, spin)
 
     selected = []
     for ik in indices:
         wfc = _wfc_file_for_index(out_dir, ik)
         if wfc is None:
             raise FileNotFoundError(f"Cannot find wavefunction text file for k index {ik + 1} in {out_dir}")
-        selected.append((ik, h_files[ik], s_files[ik], wfc, float(kptwts[ik])))
+        selected.append((ik, h_files[ik], s_files[ik], wfc, float(kptwts[ik]) * spin_factor))
     return selected
 
 def _cohp_streaming_one(item, atomI_orbs, atomJ_orbs, mode="COHP"):
@@ -874,6 +913,7 @@ def initialize_from_outdir(out_dir, atomI_orbs, atomJ_orbs, spin="sum"):
         kptwts = kptwts[selected]
     elif nspin == 1 and spin in {"up", "down"}:
         raise ValueError(f"Requested spin={spin}, but {out_dir} contains nspin=1 output")
+    kptwts = np.asarray(kptwts, dtype=float) * _spin_degeneracy_factor(nspin, spin)
 
     log_file = out_dir / "running_scf.log"
     efermi_values = rao.read_etraj_fromlog(str(log_file), term="fermi") if log_file.exists() else []
@@ -891,7 +931,8 @@ def _cohp_output_paths(output_prefix):
 
 def _write_cohp_outputs(output_prefix, energy, values, efermi, *,
                         shift_toefermi=True, testmethod="COHP", spin="sum",
-                        de=0.1, smooth=True, smooth_nstddev=3, icohp=None):
+                        de=0.1, smooth=True, smooth_nstddev=3, icohp=None,
+                        nspin=None, spin_degeneracy_factor=None):
     raw_path, shifted_path, metadata_path = _cohp_output_paths(output_prefix)
     np.savetxt(
         raw_path,
@@ -932,6 +973,11 @@ def _write_cohp_outputs(output_prefix, energy, values, efermi, *,
         "smooth_nstddev": float(smooth_nstddev),
         "files": files,
     }
+    if nspin is not None:
+        metadata["nspin"] = int(nspin)
+    if spin_degeneracy_factor is not None:
+        metadata["spin_degeneracy_factor"] = float(spin_degeneracy_factor)
+        metadata["spin_total_convention"] = SPIN_TOTAL_CONVENTION
     if icohp is not None:
         metadata["icohp"] = icohp
     metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")
@@ -1045,6 +1091,7 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
         else vals_unsmoothed
     )
     output_prefix = output_prefix or testmethod
+    nspin, spin_factor = _spin_context_from_outdir(out_dir, spin)
     metadata = _write_cohp_outputs(
         output_prefix,
         e,
@@ -1057,6 +1104,8 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
         smooth=smooth,
         smooth_nstddev=smooth_nstddev,
         icohp=icohp,
+        nspin=nspin,
+        spin_degeneracy_factor=spin_factor,
     )
     testmethod_for_plot = output_prefix
     draw_COHP(

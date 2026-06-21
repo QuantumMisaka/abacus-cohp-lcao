@@ -167,6 +167,13 @@ python src/cohp.py --out-dir /path/to/OUT.ABACUS \
   --output-prefix pair_sum
 ```
 
+Spin normalization follows the PyATB total-spectrum convention. For
+`nspin=1`, only `--spin sum` is valid and the output includes the spin
+degeneracy factor 2. For `nspin=2`, `--spin up` and `--spin down` write the
+individual channels, while `--spin sum` writes `up + down` with no extra factor.
+The `*.meta.json` file records `nspin`, `spin_degeneracy_factor`, and the spin
+total-spectrum convention used for the output.
+
 ## 5. Interpret The Result
 
 Use this script for ABACUS-internal, NAO-basis COHP analysis. The robust
