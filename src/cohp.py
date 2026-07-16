@@ -1320,7 +1320,9 @@ if __name__ == '__main__':
             icohp_label=args.icohp_label,
         )
         raise SystemExit(0)
-    
+
+    parser.error("--out-dir is required")
+
     testcase = 1
     testmethod = "pCOHP"
 

@@ -17,6 +17,18 @@ def test_run_outdir_rejects_incomplete_projected_cohp_modes(tmp_path: Path):
         cohp.run_outdir(tmp_path, [0], [1], testmethod="pCOHP")
 
 
+def test_cli_without_outdir_rejects_legacy_demo_fallback():
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "src" / "cohp.py")],
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 2
+    assert "--out-dir is required" in result.stderr
+    assert "pCOHP" not in result.stderr
+
+
 def test_atom_pair_weight_uses_ev_and_both_hermitian_directions():
     hamiltonian = np.array([[0.0, 0.5], [0.5, 0.0]], dtype=np.complex128)
     eigenvectors = np.ones((2, 1), dtype=np.complex128) / np.sqrt(2.0)
