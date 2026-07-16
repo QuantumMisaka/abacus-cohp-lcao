@@ -100,7 +100,8 @@ env MPLBACKEND=Agg python src/cohp.py \
 4. 按 k 点权重汇总，并按本征能量聚合。
 5. 对能量轴做 zero-padding 和可选 Gaussian smoothing。
 
-当前 ICOHP 默认在 zero-padding 后、Gaussian smoothing 前的 COHP 曲线上做梯形积分到费米能级；作图用高斯展宽只影响图像和两列曲线输出的平滑外观，不作为默认 ICOHP 数值来源。
+当前 ICOHP 默认直接求和费米能级以下的离散本征态 COHP 权重；zero-padding 与
+Gaussian 展宽只生成可视化曲线，不参与默认 ICOHP 数值。
 6. 输出曲线数据和图像。
 
 脚本同时保留 COOP 和 pCOHP-like 实验函数。pCOHP-like 路线用 `A^dagger C` 构造投影表示，但当前 `A` 仍主要来自 ABACUS NAO 重叠矩阵子块，因此不能等同于 LOBSTER 的标准外部投影基。

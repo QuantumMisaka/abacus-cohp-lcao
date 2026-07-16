@@ -1073,6 +1073,10 @@ def main(testcase, testmethod,
          shift_toefermi = True, invert_COHP = False,
          emin = -10, emax = 10, width = 2,
          minimal_basis = False):
+    if testmethod.startswith("pCO"):
+        raise NotImplementedError(
+            "pCOHP/pCOOP are disabled until their unit and unordered-pair conventions are implemented"
+        )
     # Initialize the test
     Hks, Sks, Cks, Eks, wks, efermi, atomI_orbs, atomJ_orbs = test_initialize(testcase=testcase, 
                                                                               minimal_basis=minimal_basis)
@@ -1116,6 +1120,10 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
                shift_toefermi=True, invert_COHP=False,
                emin=-10, emax=10, width=None, output_prefix=None, spin="sum",
                workers=1, legacy_full_read=False, icohp_label=True):
+    if testmethod.startswith("pCO"):
+        raise NotImplementedError(
+            "pCOHP/pCOOP are disabled until their unit and unordered-pair conventions are implemented"
+        )
     out_dir = Path(out_dir)
     log_file = out_dir / "running_scf.log"
     efermi_values = rao.read_etraj_fromlog(str(log_file), term="fermi") if log_file.exists() else []
@@ -1232,7 +1240,7 @@ if __name__ == '__main__':
     parser.add_argument("--input", dest="input_path", help="ABACUS INPUT path for orbital_dir discovery")
     parser.add_argument("--orbital-dir", help="Directory containing ABACUS numerical orbital files")
     parser.add_argument("--list-orbitals", action="store_true", help="List atom shell channels and exit")
-    parser.add_argument("--method", default="COHP", choices=["COHP", "COOP", "pCOHP", "pCOOP"])
+    parser.add_argument("--method", default="COHP", choices=["COHP", "COOP"])
     parser.add_argument("--de", type=float, default=0.1)
     parser.add_argument("--no-smooth", action="store_true")
     parser.add_argument("--smooth-nstddev", type=float, default=3)

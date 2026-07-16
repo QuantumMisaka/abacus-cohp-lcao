@@ -1,15 +1,14 @@
 # Diamond ABACUS LCAO-COHP vs VASP+LOBSTER
 
-This bundle contains the lightweight public artifacts for the diamond comparison
-reported in `../../docs/archive/diamond-abacus-vs-vasp-lobster-cohp.md`.
+This bundle retains reproduction inputs for the historical diamond comparison.
+Its pre-2026-07-17 processed curves were withdrawn after correction of the COHP
+normalization and integration conventions. The archived report is context only.
 
 Included files:
 
 - `abacus_relax/`: ABACUS LCAO cell-relax input using APNS efficiency orbitals.
 - `abacus_scf/`: ABACUS LCAO precision-basis SCF input used for COHP
   post-processing.
-- `analysis/`: ABACUS COHP curves, LOBSTER comparison curves, overlay figures,
-  and JSON/CSV summaries.
 - `POSCAR.initial`, `STRU.initial`, `mapping_initial.json`: initial structure
   and orbital mapping metadata.
 

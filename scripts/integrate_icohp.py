@@ -30,17 +30,35 @@ def metadata_path_for_curve(path: Path) -> Path:
     return path.with_suffix(".meta.json")
 
 
+def load_metadata(path: Path) -> dict:
+    metadata_path = metadata_path_for_curve(path)
+    if not metadata_path.exists():
+        return {}
+    return json.loads(metadata_path.read_text())
+
+
 def infer_efermi(path: Path, explicit_efermi: float | None) -> float:
     if explicit_efermi is not None:
         return float(explicit_efermi)
     if path.stem.endswith("_EminusEf"):
         return 0.0
-    metadata_path = metadata_path_for_curve(path)
-    if metadata_path.exists():
-        metadata = json.loads(metadata_path.read_text())
-        if "efermi_ev" in metadata:
-            return float(metadata["efermi_ev"])
+    metadata = load_metadata(path)
+    if "efermi_ev" in metadata:
+        return float(metadata["efermi_ev"])
     return 0.0
+
+
+def exact_metadata_icohp(path: Path) -> dict | None:
+    icohp = load_metadata(path).get("icohp")
+    if not isinstance(icohp, dict):
+        return None
+    if icohp.get("integration") != "occupied_discrete_state_sum":
+        return None
+    if not {"efermi_ev", "icohp", "minus_icohp"}.issubset(icohp):
+        return None
+    result = dict(icohp)
+    result["source"] = "metadata_discrete_state_sum"
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -55,17 +73,30 @@ def main(argv: list[str] | None = None) -> int:
         help="Whether the second column is native COHP or plotted -COHP",
     )
     parser.add_argument("--efermi", type=float, help="Fermi energy in the curve energy units/eV")
+    parser.add_argument(
+        "--integrate-curve",
+        action="store_true",
+        help=(
+            "Ignore an exact discrete-state ICOHP in adjacent metadata and instead "
+            "trapezoid-integrate the broadened curve as a diagnostic approximation"
+        ),
+    )
     parser.add_argument("--output-json", type=Path, help="Write the ICOHP summary to this JSON file")
     args = parser.parse_args(argv)
 
-    energy, values = load_two_column_curve(args.curve)
-    efermi = infer_efermi(args.curve, args.efermi)
-    result = cohp.integrate_icohp(
-        energy=energy,
-        values=values,
-        efermi=efermi,
-        input_convention=args.input_convention,
-    )
+    result = None
+    if not args.integrate_curve and args.efermi is None and args.input_convention == "cohp":
+        result = exact_metadata_icohp(args.curve)
+    if result is None:
+        energy, values = load_two_column_curve(args.curve)
+        efermi = infer_efermi(args.curve, args.efermi)
+        result = cohp.integrate_icohp(
+            energy=energy,
+            values=values,
+            efermi=efermi,
+            input_convention=args.input_convention,
+        )
+        result["source"] = "curve_trapezoid_approximation"
     result["input"] = str(args.curve)
 
     if args.output_json:
@@ -74,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"E_Fermi = {result['efermi_ev']:.6f} eV")
     print(f"ICOHP = {result['icohp']:.6f} eV")
     print(f"-ICOHP = {result['minus_icohp']:.6f} eV")
+    print(f"Integration source = {result['source']}")
     if args.output_json:
         print(f"json: {args.output_json}")
     return 0

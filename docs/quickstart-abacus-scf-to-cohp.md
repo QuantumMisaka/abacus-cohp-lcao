@@ -109,10 +109,9 @@ smoothing settings, and occupied `ICOHP/-ICOHP`. The command-line log also
 prints `E_Fermi`, `ICOHP`, `-ICOHP`, and the generated raw, shifted, metadata,
 and plot paths. The automatic plot labels `-ICOHP` by default.
 
-`ICOHP/-ICOHP` is integrated from the COHP post-processing curve before
-Gaussian smoothing is applied for plotting. The figure can still be smoothed for
-readability, but the metadata and plot label are not inferred from the smoothed
-filled area.
+`ICOHP/-ICOHP` is the direct sum of discrete COHP state weights at or below the
+Fermi level. Energy binning and Gaussian broadening are used only for the plotted
+curve, so the metadata value does not depend on `de` or the smoothing width.
 
 To keep only the absolute-energy output and plot without writing
 `*_EminusEf.dat`, add:
@@ -130,9 +129,14 @@ To hide the `-ICOHP` plot label, add:
 To integrate an existing two-column COHP curve separately:
 
 ```bash
-python scripts/integrate_icohp.py si_si_COHP.dat --efermi 7.111283804
+python scripts/integrate_icohp.py si_si_COHP.dat
 python scripts/integrate_icohp.py si_si_COHP_EminusEf.dat
 ```
+
+When adjacent metadata contains the discrete-state result, the script returns
+that exact value by default. Use `--integrate-curve` only to diagnose the area
+under the broadened curve. Supplying an explicit `--efermi` also selects the
+trapezoidal curve approximation.
 
 ## 4. Spin-Polarized Output
 

@@ -4,11 +4,17 @@ import subprocess
 import sys
 
 import numpy as np
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 import cohp  # noqa: E402
 import read_abacus_out as rao  # noqa: E402
+
+
+def test_run_outdir_rejects_incomplete_projected_cohp_modes(tmp_path: Path):
+    with pytest.raises(NotImplementedError, match="pCOHP/pCOOP are disabled"):
+        cohp.run_outdir(tmp_path, [0], [1], testmethod="pCOHP")
 
 
 def test_atom_pair_weight_uses_ev_and_both_hermitian_directions():
@@ -77,6 +83,31 @@ def test_integrate_icohp_cli_reads_metadata_efermi_and_writes_json(tmp_path: Pat
     assert "-ICOHP = 0.150000 eV" in result.stdout
 
 
+def test_integrate_icohp_cli_prefers_exact_discrete_metadata(tmp_path: Path):
+    curve = tmp_path / "pair.dat"
+    curve.write_text("# Energy(eV) COHP\n-1.0 -0.1\n0.0 -0.2\n1.0 0.3\n")
+    metadata = {
+        "efermi_ev": 0.0,
+        "icohp": {
+            "efermi_ev": 0.0,
+            "icohp": -4.5,
+            "minus_icohp": 4.5,
+            "integration": "occupied_discrete_state_sum",
+        },
+    }
+    (tmp_path / "pair.meta.json").write_text(json.dumps(metadata) + "\n")
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "integrate_icohp.py"), str(curve)],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+    assert "-ICOHP = 4.500000 eV" in result.stdout
+    assert "metadata_discrete_state_sum" in result.stdout
+
+
 def test_integrate_icohp_cli_defaults_shifted_curve_to_zero_fermi(tmp_path: Path):
     curve = tmp_path / "pair_EminusEf.dat"
     curve.write_text("# Energy-E_Fermi(eV) COHP\n-1.0 -0.1\n0.0 -0.2\n1.0 0.3\n")
@@ -90,3 +121,23 @@ def test_integrate_icohp_cli_defaults_shifted_curve_to_zero_fermi(tmp_path: Path
 
     assert "E_Fermi = 0.000000 eV" in result.stdout
     assert "-ICOHP = 0.150000 eV" in result.stdout
+
+
+def test_scale_cli_rejects_invalid_historical_preset_without_opt_in(tmp_path: Path):
+    curve = tmp_path / "pair.dat"
+    curve.write_text("-1.0 -0.1\n0.0 -0.2\n")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "scale_abacus_cohp_to_lobster.py"),
+            str(curve),
+            "--preset",
+            "Si-Si",
+        ],
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode != 0
+    assert "invalid historical presets" in result.stderr

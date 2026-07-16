@@ -1,7 +1,9 @@
 # Ni(100)-CO ABACUS LCAO-COHP vs VASP+LOBSTER
 
-This bundle contains the lightweight public artifacts for the spin-polarized
-Ni(100)-CO comparison reported in:
+This bundle retains reproduction inputs for the historical spin-polarized
+Ni(100)-CO comparison. Its pre-2026-07-17 processed curves were withdrawn after
+correction of the COHP normalization and integration conventions. The archived
+reports are context only:
 
 - `../../docs/archive/ni100-co-abacus-vs-lobster-cohp.md`
 - `../../docs/archive/ni100-co-magnetism-and-cohp-comparability-note.md`
@@ -14,11 +16,8 @@ Included files:
   orbital set.
 - `abacus_scf_precision/`: ABACUS LCAO SCF/COHP input using APNS precision
   orbitals; this is the primary ABACUS result used in the report.
-- `analysis/`: ABACUS efficiency/precision COHP curves, LOBSTER comparison
-  curves, overlay plots, and summary data.
 
 The heavy ABACUS `OUT.ABACUS`, VASP `WAVECAR/CHGCAR/vasprun.xml`, and LOBSTER
-raw output directories are intentionally not bundled. VASP+LOBSTER results are
-included only through processed comparison curves and report tables.
+raw output directories are intentionally not bundled.
 
 The included ABACUS inputs use relative PP/ORB paths under `../../data/`.

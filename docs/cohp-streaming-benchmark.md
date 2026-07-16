@@ -1,5 +1,10 @@
 # COHP Streaming Benchmark
 
+> Validation status (2026-07-17): historical processed summaries were
+> withdrawn after correction of the COHP normalization and ICOHP conventions.
+> Commands below describe how to regenerate them; previous numerical results
+> must not be used as evidence for the corrected implementation.
+
 This note records the cached ABACUS COHP post-processing benchmark for the
 streaming COHP/COOP path in `src/cohp.py`.
 
@@ -56,7 +61,7 @@ Result:
 - elapsed: `481.000 s`
 - Python `ru_maxrss`: `86684 KB`
 - Fermi energy: `2.1538541769 eV`
-- public summary: `examples/validation-bundles/fe131_o366_lts3101_scf_122/cohp_streaming_benchmark_summary/latest/benchmark_summary.json`
+- publish a new summary only after rerunning with the corrected implementation
 
 The previous large probe baseline for the legacy full-matrix path took about
 12 minutes and required tens of GB of memory. The streaming full-SCF result is

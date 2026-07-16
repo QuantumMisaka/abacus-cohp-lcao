@@ -1,5 +1,9 @@
 # Diamond ABACUS LCAO-COHP vs VASP+LOBSTER COHP Test Report
 
+> Historical report: the ABACUS curves used the invalid pre-2026-07-17 unit,
+> pair-counting, and ICOHP conventions. Quantitative values and artifact links
+> below are retained as provenance only and must not be used for validation.
+
 ## Workflow
 
 - ABACUS LTS: APNS efficiency orbital for cell-relax, APNS precision orbital for SCF + COHP.

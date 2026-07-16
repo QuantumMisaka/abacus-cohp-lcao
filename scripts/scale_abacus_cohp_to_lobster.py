@@ -40,8 +40,9 @@ Output:
   ABACUS -ICOHP, and scaled LOBSTER-like -ICOHP.
 
 Scientific boundary:
-  This is an empirical readability scale based on completed benchmark ratios.
-  It does not prove ABACUS NAO-COHP and LOBSTER pCOHP are the same observable.
+  These presets were derived from an invalid historical COHP implementation.
+  The CLI refuses to apply them unless --allow-invalid-historical-presets is
+  supplied explicitly. They are retained only for reproducing old reports.
 """
 
 
@@ -271,6 +272,11 @@ def main() -> None:
         help="Output prefix for .dat and .json. Defaults to INPUT stem plus _lobster_like.",
     )
     parser.add_argument("--list-presets", action="store_true", help="Print preset scale table and exit.")
+    parser.add_argument(
+        "--allow-invalid-historical-presets",
+        action="store_true",
+        help="Explicitly opt in to presets derived from the invalid pre-2026-07-17 COHP implementation.",
+    )
     args = parser.parse_args()
 
     if args.list_presets:
@@ -286,6 +292,11 @@ def main() -> None:
         parser.error("input is required unless --list-presets is used")
     if args.preset is None:
         parser.error("--preset is required unless --list-presets is used")
+    if not args.allow_invalid_historical_presets:
+        parser.error(
+            "refusing to apply invalid historical presets; use "
+            "--allow-invalid-historical-presets only to reproduce an old report"
+        )
 
     output_prefix = args.output_prefix or args.input.with_name(args.input.stem + "_lobster_like")
     summary = write_scaled_outputs(

@@ -1,6 +1,8 @@
 # Pt(111)-CO Top-Site nspin=1 COHP Example
 
-This lightweight bundle stores the nspin=1 Pt(111)-CO top-site result.
+This lightweight bundle retains the inputs and orbital mapping for the
+historical nspin=1 Pt(111)-CO top-site run. Its pre-2026-07-17 processed curves
+and summaries were withdrawn after correction of the COHP conventions.
 
 COHP was computed with `src/cohp.py` from the final `OUT.ABACUS` matrices,
 wavefunctions, k-point weights, and Fermi level. `mapping.json` records the
@@ -21,10 +23,6 @@ Included files:
 - `INPUT`, `STRU`, `run_abacus.sbatch`: compact-basis relax input.
 - `INPUT.final_scf`, `STRU.final_scf`: precision-basis final SCF input.
 - `mapping.json`: atom and orbital-range mapping used for COHP selection.
-- `summary.md`, `summary.json`: COHP result summary.
-- `top_Pt_C_total_sum.*`: total top Pt-C COHP result.
-- `top_Pt_d_C_p_sum.*`: Pt-d / C-p component.
-- `top_Pt_d_C_s_sum.*`: Pt-d / C-s component.
 
 Required APNS files are included in `../data/PP`, `../data/ORB`, and
 `../data/apns-orbitals-precision-v1`; both `INPUT` files point to those

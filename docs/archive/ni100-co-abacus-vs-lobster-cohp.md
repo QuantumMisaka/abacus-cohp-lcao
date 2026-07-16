@@ -1,5 +1,9 @@
 # Ni(100)-CO ABACUS LCAO-COHP vs VASP+LOBSTER COHP Report
 
+> Historical report: the ABACUS curves used the invalid pre-2026-07-17 unit,
+> pair-counting, and ICOHP conventions. Quantitative values and artifact links
+> below are retained as provenance only and must not be used for validation.
+
 ## Scope
 
 This report compares COHP analysis for a spin-polarized Ni(100)-CO top-site adsorption model using:

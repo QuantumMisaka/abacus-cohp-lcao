@@ -1,7 +1,8 @@
 # LTS 3.10.x Si2 COHP Example
 
-This lightweight bundle stores the input files and generated Si-Si COHP result
-from an ABACUS LTS 3.10.x LCAO SCF validation run.
+This lightweight bundle stores the input files for an ABACUS LTS 3.10.x LCAO
+SCF validation run. The pre-2026-07-17 generated Si-Si COHP curve was withdrawn
+after correction of the COHP unit, pair-counting, and ICOHP conventions.
 
 The original SCF output directory is not included, but the result was generated
 with `src/cohp.py` from an `OUT.ABACUS` directory containing `data-*-H/S`,
@@ -20,11 +21,9 @@ out_app_flag 1
 Included files:
 
 - `INPUT`, `KPT`, `STRU`: calculation inputs used for the validation.
-- `si_si_COHP.dat`: energy-resolved Si-Si COHP data.
-- `si_si_COHP.png`: plotted `-COHP` curve.
 
-The related VASP+LOBSTER comparison artifacts are separated from this minimal
-example and stored in `../validation-bundles/si2_lobster_compare`.
+Regenerate the ABACUS curve and VASP+LOBSTER comparison before publishing a
+quantitative result from this example.
 
 Required pseudopotential and orbital files are included in
 `../data/legacy-si`, and `INPUT` points to that directory with relative paths.
