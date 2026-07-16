@@ -74,6 +74,11 @@ def cal_COHPvalskIJ_e_selected(block, Ek, Ck_selected, n_i, mode="COHP"):
     vals = np.einsum("ib,ij,jb->b", c_i.conj(), block, c_j, optimize=True).real
     return Ek, vals
 
+
+def _unordered_pair_factor(atomI_orbs, atomJ_orbs):
+    """Return the Hermitian completion factor for an orbital-block pair."""
+    return 1.0 if set(atomI_orbs) == set(atomJ_orbs) else 2.0
+
 def cal_COHPvalsIJ_e(Hks, Sks, Eks, Cks, wk = None, 
                      atomI_orbs = None, atomJ_orbs = None,
                      mode: str = "COHP"):
@@ -81,6 +86,7 @@ def cal_COHPvalsIJ_e(Hks, Sks, Eks, Cks, wk = None,
     nbands = len(Eks[0])
 
     wk = [1/nks for i in range(nks)] if wk is None else wk
+    pair_factor = _unordered_pair_factor(atomI_orbs, atomJ_orbs)
 
     Evals = []
     COHPvalsIJ_e = []
@@ -91,7 +97,7 @@ def cal_COHPvalsIJ_e(Hks, Sks, Eks, Cks, wk = None,
         assert len(Evalsk) == nbands
         assert len(COHPvalskIJ_e) == nbands
         # add k-point weight
-        COHPvalskIJ_e = [wk[ik]*COHPvalskIJ_e[i] for i in range(nbands)]
+        COHPvalskIJ_e = [pair_factor*wk[ik]*COHPvalskIJ_e[i] for i in range(nbands)]
         # add to the global list
         Evals += Evalsk.tolist()
         COHPvalsIJ_e += COHPvalskIJ_e
@@ -102,6 +108,8 @@ def cal_COHPvalsIJ_e(Hks, Sks, Eks, Cks, wk = None,
     Evals, COHPvalsIJ_e = zip(*sorted(zip(Evals, COHPvalsIJ_e)))
     # energy unit conversion
     Evals = np.array([rao.unit_conversion(e, "Ry", "eV") for e in Evals])
+    if mode == "COHP":
+        COHPvalsIJ_e = np.asarray(COHPvalsIJ_e, dtype=float) * rao.RY_TO_EV
     return dos_integral(Evals, COHPvalsIJ_e)
 
 def _sorted_matrix_files(out_dir, suffix):
@@ -229,12 +237,15 @@ def cal_COHPvalsIJ_e_streaming(out_dir, atomI_orbs, atomJ_orbs, wk=None, mode="C
 
     Evals = []
     COHPvalsIJ_e = []
+    pair_factor = _unordered_pair_factor(atomI_orbs, atomJ_orbs)
     for ek, vals in pieces:
         Evals += ek.tolist()
-        COHPvalsIJ_e += vals.tolist()
+        COHPvalsIJ_e += (pair_factor * vals).tolist()
     Evals, COHPvalsIJ_e = zip(*sorted(zip(Evals, COHPvalsIJ_e)))
     Evals = np.array([rao.unit_conversion(e, "Ry", "eV") for e in Evals])
     COHPvalsIJ_e = np.array(COHPvalsIJ_e, dtype=np.float64)
+    if mode == "COHP":
+        COHPvalsIJ_e *= rao.RY_TO_EV
     return dos_integral(Evals, COHPvalsIJ_e)
 
 """pCOHP: why always positive?"""
@@ -381,6 +392,65 @@ def integrate_icohp(energy, values, efermi=0.0, input_convention="cohp"):
         "points_occupied": int(len(occupied_energy)),
         "uses_plot_smoothing": False,
     }
+
+
+def integrate_discrete_icohp(energy, state_weights, efermi=0.0, input_convention="cohp"):
+    """Sum occupied delta-function spectral weights before any grid broadening."""
+    if input_convention not in {"cohp", "minus-cohp"}:
+        raise ValueError("input_convention must be 'cohp' or 'minus-cohp'")
+    energy = np.asarray(energy, dtype=float)
+    state_weights = np.asarray(state_weights, dtype=float)
+    if energy.shape != state_weights.shape:
+        raise ValueError("energy and state_weights must have the same shape")
+    indices = np.argsort(energy)
+    energy = energy[indices]
+    cohp_weights = state_weights[indices]
+    if input_convention == "minus-cohp":
+        cohp_weights = -cohp_weights
+    occupied = energy <= float(efermi)
+    occupied_energy = energy[occupied]
+    icohp = float(np.sum(cohp_weights[occupied]))
+    return {
+        "icohp": icohp,
+        "minus_icohp": -icohp,
+        "efermi_ev": float(efermi),
+        "input_convention": input_convention,
+        "integration": "occupied_discrete_state_sum",
+        "energy_window_ev": {
+            "min": float(occupied_energy[0]) if len(occupied_energy) else float("nan"),
+            "max": float(occupied_energy[-1]) if len(occupied_energy) else float("nan"),
+            "occupied_condition": "energy <= efermi",
+        },
+        "points_total": int(len(energy)),
+        "points_occupied": int(np.count_nonzero(occupied)),
+        "uses_plot_smoothing": False,
+    }
+
+
+def broaden_discrete_spectrum(energy, state_weights, de=0.1, sigma=None, padding_sigma=8.0):
+    """Put discrete spectral weights on an energy-density grid with conserved area."""
+    energy = np.asarray(energy, dtype=float)
+    state_weights = np.asarray(state_weights, dtype=float)
+    if energy.ndim != 1 or energy.shape != state_weights.shape or energy.size == 0:
+        raise ValueError("energy and state_weights must be non-empty one-dimensional arrays of equal shape")
+    if de <= 0:
+        raise ValueError("de must be positive")
+    if sigma is not None and sigma <= 0:
+        raise ValueError("sigma must be positive when Gaussian broadening is requested")
+    padding = (padding_sigma * sigma) if sigma is not None else de
+    grid_min = np.floor((energy.min() - padding) / de) * de
+    grid_max = np.ceil((energy.max() + padding) / de) * de
+    grid = np.arange(grid_min, grid_max + 0.5 * de, de)
+    impulses = np.zeros(grid.size, dtype=float)
+    indices = np.rint((energy - grid_min) / de).astype(int)
+    np.add.at(impulses, indices, state_weights)
+    if sigma is None:
+        return grid, impulses / de
+    half_width = max(1, int(np.ceil(padding_sigma * sigma / de)))
+    offsets = np.arange(-half_width, half_width + 1, dtype=float) * de
+    kernel = np.exp(-0.5 * (offsets / sigma) ** 2)
+    kernel /= kernel.sum() * de
+    return grid, np.convolve(impulses, kernel, mode="same")
 
 
 def _icohp_annotation(icohp):
@@ -971,6 +1041,9 @@ def _write_cohp_outputs(output_prefix, energy, values, efermi, *,
         "de_ev": float(de),
         "smooth": bool(smooth),
         "smooth_nstddev": float(smooth_nstddev),
+        "pair_convention": "unordered Hermitian orbital-block pair",
+        "cohp_state_weight_unit": "eV" if testmethod.upper().endswith("COHP") else "dimensionless",
+        "cohp_curve_unit": "dimensionless" if testmethod.upper().endswith("COHP") else "1/eV",
         "files": files,
     }
     if nspin is not None:
@@ -1083,12 +1156,19 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
     else:
         raise ValueError("Invalid testmethod")
 
-    e, vals_unsmoothed = rao.zero_padding(xmin=np.min(e) * 1.1, xmax=np.max(e) * 1.1, dx=de, x=e, y=vals)
-    icohp = integrate_icohp(e, vals_unsmoothed, efermi=efermi, input_convention="cohp")
-    vals = (
-        rao.Gauss_smoothing(x=e, y=vals_unsmoothed, sigma=smooth_nstddev * de, normalize=False)
-        if smooth
-        else vals_unsmoothed
+    discrete_energy = np.asarray(e, dtype=float)
+    discrete_weights = np.asarray(vals, dtype=float)
+    icohp = integrate_discrete_icohp(
+        discrete_energy,
+        discrete_weights,
+        efermi=efermi,
+        input_convention="cohp",
+    )
+    e, vals = broaden_discrete_spectrum(
+        discrete_energy,
+        discrete_weights,
+        de=de,
+        sigma=smooth_nstddev * de if smooth else None,
     )
     output_prefix = output_prefix or testmethod
     nspin, spin_factor = _spin_context_from_outdir(out_dir, spin)

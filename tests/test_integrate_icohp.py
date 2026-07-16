@@ -8,6 +8,33 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 import cohp  # noqa: E402
+import read_abacus_out as rao  # noqa: E402
+
+
+def test_atom_pair_weight_uses_ev_and_both_hermitian_directions():
+    hamiltonian = np.array([[0.0, 0.5], [0.5, 0.0]], dtype=np.complex128)
+    eigenvectors = np.ones((2, 1), dtype=np.complex128) / np.sqrt(2.0)
+    energies, weights = cohp.cal_COHPvalsIJ_e(
+        Hks=[hamiltonian],
+        Sks=[np.eye(2)],
+        Eks=[np.array([-0.25])],
+        Cks=[eigenvectors],
+        wk=[1.0],
+        atomI_orbs=[0],
+        atomJ_orbs=[1],
+    )
+    np.testing.assert_allclose(energies, [-0.25 * rao.RY_TO_EV])
+    np.testing.assert_allclose(weights, [0.5 * rao.RY_TO_EV])
+
+
+def test_discrete_icohp_and_broadening_preserve_state_weights():
+    energy = np.array([-0.5, 0.5])
+    weights = np.array([-0.4, 0.7])
+    result = cohp.integrate_discrete_icohp(energy, weights, efermi=0.0)
+    np.testing.assert_allclose(result["minus_icohp"], 0.4)
+    for de in (0.2, 0.05):
+        grid, spectrum = cohp.broaden_discrete_spectrum(energy, weights, de=de, sigma=0.15)
+        np.testing.assert_allclose(np.trapezoid(spectrum, grid), weights.sum(), atol=2e-4)
 
 
 def test_integrate_icohp_reports_native_and_minus_conventions():

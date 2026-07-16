@@ -33,6 +33,9 @@ from itertools import groupby
 import numpy as np
 
 """utils"""
+RY_TO_EV = 13.605693122994
+
+
 def cxx_topycomplex(num: str):
     """cxx prints complex numbers in the form (a,b)"""
     if "(" not in num and "," not in num:
@@ -43,7 +46,7 @@ def cxx_topycomplex(num: str):
 
 def unit_conversion(val: float, unitfrom: str = "eV", unitto: str = "eV") -> float:
     # energy unit takes eV as the base
-    eunit = {"eV": 1.0, "Ry": 1/13.6, "Hartree": 1/27.2, "meV": 1e3, "J": 1.6e-19, "kcal/mol": 23.1}
+    eunit = {"eV": 1.0, "Ry": 1/RY_TO_EV, "Hartree": 1/(2*RY_TO_EV), "meV": 1e3, "J": 1.6e-19, "kcal/mol": 23.1}
     # length unit takes Angstrom as the base
     lunit = {"A": 1.0, "m": 1e-10, "nm": 0.1, "Bohr": 0.529, "a.u.": 0.529}
     # weight unit takes atomic unit as the base
