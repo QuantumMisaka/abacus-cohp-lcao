@@ -518,54 +518,6 @@ def draw_COHP(x, y,
         plt.ticklabel_format(axis='x', style='sci', scilimits=(0,0))
     plt.savefig(f"{testmethod}.png")
 
-"""about test"""
-def test_selection(testcase, minimal_basis = False):
-    if testcase == 1: # 2s2p1d
-        path = "diamond/OUT.ABACUS"
-        if minimal_basis:
-            atomI_orbs = [0, 2, 3, 4]
-            atomJ_orbs = [13, 15, 16, 17]
-        else:
-            atomI_orbs = list(range(0, 13))
-            atomJ_orbs = list(range(13, 26))
-    elif testcase == 2: # 3s3p3d2f, 3s3p2d
-        path = "GaAs/OUT.ABACUS"
-        if minimal_basis:
-            atomI_orbs = [0, 3, 4, 5, 12, 13, 14, 15, 16]
-            atomJ_orbs = [41, 44, 45, 46]
-        else:
-            atomI_orbs = list(range(0, 41))
-            atomJ_orbs = list(range(41, 63))
-    elif testcase == 3: # 6s3p2d, 3s3p2d
-        path = "CsCl/OUT.ABACUS"
-        if minimal_basis:
-            atomI_orbs = [0, 6, 7, 8]
-            atomJ_orbs = [25, 31, 32, 33]
-        else:
-            atomI_orbs = list(range(0, 25))
-            atomJ_orbs = list(range(25, 47))
-    else:
-        raise ValueError("Invalid testcase")
-    return path, atomI_orbs, atomJ_orbs
-
-def test_initialize(testcase, minimal_basis):
-    path, atomI_orbs, atomJ_orbs = test_selection(testcase=testcase, minimal_basis=minimal_basis)
-    kptwts = rao.read_kpoints(path + "/kpoints", as_dict=False)[0][:, -1]
-    nks = len(kptwts)
-
-    Hks = [rao.read_mat_hs(path + f"/data-{ik}-H") for ik in range(nks)]
-    Sks = [rao.read_mat_hs(path + f"/data-{ik}-S") for ik in range(nks)]
-    temp = [rao.read_lowf(path + f"/LOWF_K_{ik+1}.txt") for ik in range(nks)]
-    
-    Cks, kvecs, Eks, occs = tuple(map(list, zip(*temp)))
-    assert len(Cks) == nks
-    assert len(kvecs) == nks
-    assert len(Eks) == nks
-    assert len(occs) == nks
-
-    efermi = rao.read_etraj_fromlog(path + "/running_scf.log", term="fermi")[-1]
-    return Hks, Sks, Cks, Eks, kptwts, efermi, atomI_orbs, atomJ_orbs
-
 def _first_existing(candidates):
     for candidate in candidates:
         if candidate.exists():
@@ -1068,53 +1020,6 @@ def _print_cohp_output_summary(metadata, plot_path):
     print(f"metadata: {metadata['files']['metadata']['path']}", file=sys.stderr)
     print(f"plot: {plot_path}", file=sys.stderr)
 
-def main(testcase, testmethod,
-         de = 0.1, smooth = True, smooth_nstddev = 3,
-         shift_toefermi = True, invert_COHP = False,
-         emin = -10, emax = 10, width = 2,
-         minimal_basis = False):
-    if testmethod.startswith("pCO"):
-        raise NotImplementedError(
-            "pCOHP/pCOOP are disabled until their unit and unordered-pair conventions are implemented"
-        )
-    # Initialize the test
-    Hks, Sks, Cks, Eks, wks, efermi, atomI_orbs, atomJ_orbs = test_initialize(testcase=testcase, 
-                                                                              minimal_basis=minimal_basis)
-    # Compute the COHP/COOP/pCOHP/pCOOP for the IJ atom-pair
-    if testmethod.startswith("pCO"):
-        Aks = [Sk[:, atomI_orbs + atomJ_orbs] for Sk in Sks]
-        e, COHPvalsIJ_e = cal_pCOHPvalsIJ_e(Hks=Hks, Sks=Sks, Eks=Eks, Cks=Cks, Aks=Aks,
-                                            wk=wks,
-                                            atomI_orbs=atomI_orbs, 
-                                            atomJ_orbs=atomJ_orbs, 
-                                            mode=testmethod[1:])
-    elif testmethod.startswith("CO"):
-        e, COHPvalsIJ_e = cal_COHPvalsIJ_e(Hks=Hks, Sks=Sks, Eks=Eks, Cks=Cks,
-                                           wk=wks,
-                                           atomI_orbs=atomI_orbs, 
-                                           atomJ_orbs=atomJ_orbs, 
-                                           mode=testmethod)
-    else:
-        raise ValueError("Invalid testmethod")
-    # zero-padding COHP, necessary for recovering the original expression including \delta(\epsilon - \epsilon')
-    e, COHPvalsIJ_e = rao.zero_padding(xmin=np.min(e)*1.1, 
-                                       xmax=np.max(e)*1.1, 
-                                       dx=de, 
-                                       x=e, y=COHPvalsIJ_e)
-    # Smoothing COHP, optional
-    COHPvalsIJ_e = rao.Gauss_smoothing(x=e, 
-                                       y=COHPvalsIJ_e, 
-                                       sigma=smooth_nstddev*de, 
-                                       normalize=False) if smooth else COHPvalsIJ_e
-    # Draw the COHP
-    draw_COHP(e, COHPvalsIJ_e, 
-              testmethod=testmethod,
-              emin=emin, emax=emax,
-              width=width,
-              shift_toefermi=shift_toefermi, efermi=efermi, 
-              invert_COHP=invert_COHP)
-    return e, COHPvalsIJ_e
-
 def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
                de=0.1, smooth=True, smooth_nstddev=3,
                shift_toefermi=True, invert_COHP=False,
@@ -1129,7 +1034,7 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
     efermi_values = rao.read_etraj_fromlog(str(log_file), term="fermi") if log_file.exists() else []
     efermi = efermi_values[-1] if len(efermi_values) else 0.0
 
-    if testmethod.startswith("pCO") or legacy_full_read:
+    if legacy_full_read:
         Hks, Sks, Cks, Eks, wks, efermi, atomI_orbs, atomJ_orbs = initialize_from_outdir(
             out_dir=out_dir,
             atomI_orbs=atomI_orbs,
@@ -1141,13 +1046,7 @@ def run_outdir(out_dir, atomI_orbs, atomJ_orbs, testmethod="COHP",
         if requested and max(requested) >= nlocal:
             raise ValueError(f"Requested global NAO index {max(requested)} but ABACUS output has {nlocal} orbitals")
 
-    if testmethod.startswith("pCO"):
-        Aks = [Sk[:, atomI_orbs + atomJ_orbs] for Sk in Sks]
-        e, vals = cal_pCOHPvalsIJ_e(
-            Hks=Hks, Sks=Sks, Eks=Eks, Cks=Cks, Aks=Aks, wk=wks,
-            atomI_orbs=atomI_orbs, atomJ_orbs=atomJ_orbs, mode=testmethod[1:],
-        )
-    elif testmethod.startswith("CO") and legacy_full_read:
+    if testmethod.startswith("CO") and legacy_full_read:
         e, vals = cal_COHPvalsIJ_e(
             Hks=Hks, Sks=Sks, Eks=Eks, Cks=Cks, wk=wks,
             atomI_orbs=atomI_orbs, atomJ_orbs=atomJ_orbs, mode=testmethod,
@@ -1322,77 +1221,3 @@ if __name__ == '__main__':
         raise SystemExit(0)
 
     parser.error("--out-dir is required")
-
-    testcase = 1
-    testmethod = "pCOHP"
-
-    de = 0.05 # eV
-
-    smooth = True
-    smooth_nstddev = 5
-
-    shift_toefermi = True
-    invert_COHP = True
-
-    emin = -10
-    emax = 10
-    width = 0.025
-
-    minimal_basis = True
-
-    import unittest
-    class TestCOHP(unittest.TestCase):
-        def test_dos_integral(self):
-            x = [1, 2, 3, 4, 5, 6]
-            y = [1, 2, 3, 4, 5, 6]
-            x, y = dos_integral(x, y)
-            self.assertEqual(x.tolist(), [1, 2, 3, 4, 5, 6])
-            self.assertEqual(y.tolist(), [1, 2, 3, 4, 5, 6])
-
-            x = [1, 2, 3, 3, 4, 4, 4, 5, 6, 6]
-            y = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            x, y = dos_integral(x, y)
-            self.assertEqual(x.tolist(), [1, 2, 3, 4, 5, 6])
-            self.assertEqual(y.tolist(), [1, 1, 2, 3, 1, 2])
-
-            x = [4, 4, 4, 2, 3, 1, 5, 8, 7, 6]
-            y = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            x, y = dos_integral(x, y)
-            self.assertEqual(x.tolist(), [1, 2, 3, 4, 5, 6, 7, 8])
-            self.assertEqual(y.tolist(), [6, 4, 5, 6, 7, 10, 9, 8])
-
-            x = [-5, -10, 1, 6, -3, 0, 3, 5, 7, 8]
-            y = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            x, y = dos_integral(x, y)
-            self.assertEqual(x.tolist(), [-10, -5, -3, 0, 1, 3, 5, 6, 7, 8])
-            self.assertEqual(y.tolist(), [2, 1, 5, 6, 3, 7, 8, 4, 9, 10])
-        def test_cal_COHPmatskIJ_e_ij(self):
-            Hks = [rao.read_mat_hs("diamond/OUT.ABACUS/data-0-H")]
-            Sks = [rao.read_mat_hs("diamond/OUT.ABACUS/data-0-S")]
-            temp = [rao.read_lowf("diamond/OUT.ABACUS/LOWF_K_1.txt")]
-            Cks, kvecs, Eks, occs = tuple(map(list, zip(*temp)))
-            atomI_orbs = [0, 2, 3, 4]
-            atomJ_orbs = [13, 15, 16, 17]
-            value = cal_COHPmatskIJ_e_ij(Hk=Hks[0], Sk=Sks[0], Ck=Cks[0], atomI_orbs=atomI_orbs, atomJ_orbs=atomJ_orbs)
-            
-            nlocal, nbands = Cks[0].shape
-            for ib in range(nbands):
-                self.assertEqual(value[ib].shape, (len(atomI_orbs), len(atomJ_orbs)))
-            value_totest_byhand = value[0]
-            # first, is iorb, jorb, therefore H 0, 13
-            print("Cks[0][0, 0] = ", Cks[0][0, 0])
-            print("Hks[0][0, 13] = ", Hks[0][0, 13])
-            print("Cks[0][13, 0] = ", Cks[0][13, 0])
-            self.assertEqual(value_totest_byhand[0, 0], Cks[0][0, 0]*Hks[0][0, 13]*Cks[0][13, 0])
-            self.assertEqual(value_totest_byhand[0, 1], Cks[0][0, 0]*Hks[0][0, 15]*Cks[0][15, 0])
-            self.assertEqual(value_totest_byhand[0, 2], Cks[0][0, 0]*Hks[0][0, 16]*Cks[0][16, 0])
-            self.assertEqual(value_totest_byhand[0, 3], Cks[0][0, 0]*Hks[0][0, 17]*Cks[0][17, 0])
-
-    if "test" not in testmethod:
-        main(testcase, testmethod,
-            de = de, smooth = smooth, smooth_nstddev = smooth_nstddev,
-            shift_toefermi = shift_toefermi, invert_COHP = invert_COHP,
-            emin = emin, emax = emax, width = width,
-            minimal_basis = minimal_basis)
-    else:
-        unittest.main()

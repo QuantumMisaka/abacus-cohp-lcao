@@ -23,8 +23,6 @@ function                description                 tested
 ------------------------------------------------------------------------------------------
 cxx_topycomplex         convert cxx complex to py   yes
 unit_conversion         convert units               yes
-Gauss_smoothing         Gaussian smoothing          no
-zero_padding            zero padding                yes
 ------------------------------------------------------------------------------------------
 directly run will trigger unittest on functions
 """
@@ -58,62 +56,6 @@ def unit_conversion(val: float, unitfrom: str = "eV", unitto: str = "eV") -> flo
         if unitfrom in u and unitto in u:
             return val * u[unitto] / u[unitfrom]
     raise ValueError("Units are not in the same category")
-
-def Gauss_smoothing(x, y, sigma, normalize = True, normalize_to = 1.0):
-    """Gaussian smoothing of the data y(x) with a standard deviation sigma.
-
-    Args:
-        x (np.ndarray): x-axis values.
-        y (np.ndarray): y-axis values.
-        sigma (float): standard deviation of the Gaussian.
-
-    Returns:
-        np.ndarray: smoothed y-axis values.
-    """
-    n = len(x)
-    m = len(y)
-    assert n == m
-    y_smoothed = np.zeros(n)
-    for i in range(n):
-        for j in range(n):
-            y_smoothed[i] += y[j]*np.exp(-(x[i] - x[j])**2/(2*sigma**2))
-    if normalize:
-        norm = np.trapz(y_smoothed, x)
-        y_smoothed = y_smoothed * normalize_to / norm
-            
-    return y_smoothed
-
-def zero_padding(xmin: float, xmax: float, dx: float, x: np.ndarray, y: np.ndarray):
-    """Zero padding for the x and y data, so that the x data is within the range [xmin, xmax] with a step of dx.
-    The y data is interpolated to the new x data.
-    
-    Args:
-        xmin (float): minimum value of the new x data
-        xmax (float): maximum value of the new x data, EXCLUSIVE!
-        dx (float): step of the new x data
-        x (np.ndarray): original x data
-        y (np.ndarray): original y data
-        interpolate (str): interpolation method, "none", "linear", "cubic"
-    
-    Returns:
-        np.ndarray: new x data
-        np.ndarray: new y data
-    """
-    xnew = np.arange(xmin, xmax, dx)
-    ynew = np.zeros(len(xnew))
-
-    def nearest_index(x0, grid):
-        """return the nearest index of x0 in grid, and the difference between x0 and grid[index]"""
-        i = np.abs(grid - x0).argmin()
-        return i, grid[i] - x0
-
-    for i in range(len(x)):
-        if x[i] < xnew[0] or x[i] > xnew[-1]:
-            continue
-        _i, d = nearest_index(x[i], xnew)
-        if abs(d) <= dx / 2:
-            ynew[_i] += y[i]
-    return xnew, ynew
 
 import matplotlib.pyplot as plt
 def draw_stackdos(e: list, dos: list,           # source data, stack into list
@@ -1129,30 +1071,4 @@ BAND       Spin up Energy(ev)               Occupation     Spin down Energy(ev) 
             self.assertTupleEqual(result1.shape, result2.shape)
             self.assertTupleEqual(result1.shape, (8, 16, 3))
     
-        def test_zero_padding(self):
-            x = np.array([1, 2, 3, 4], dtype=np.float64)
-            y = np.array([1, 1, 1, 1], dtype=np.float64)
-            x, y = zero_padding(xmin = 0, xmax = 5, dx = 1, x = x, y = y)
-            self.assertEqual(len(x), 5)
-            self.assertEqual(len(y), 5)
-            self.assertEqual(y.tolist(), [0.0, 1.0, 1.0, 1.0, 1.0])
-
-            x = np.array([1, 2, 3, 7], dtype=np.float64)
-            y = np.array([1, 1, 1, 1], dtype=np.float64)
-            x, y = zero_padding(xmin = 0, xmax = 10, dx = 1, x = x, y = y)
-            self.assertEqual(len(x), 10)
-            self.assertEqual(len(y), 10)
-            self.assertEqual(y.tolist(), [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-
-            x = np.array([1, 2, 3, 7], dtype=np.float64)
-            y = np.array([1, -1, 1, -1], dtype=np.float64)
-            x, y = zero_padding(xmin = 0, xmax = 10, dx = 0.5, x = x, y = y)
-            self.assertEqual(len(x), 20)
-            self.assertEqual(len(y), 20)
-            self.assertEqual(y.tolist(), 
-                             [0.0, 0.0, 1.0, 0.0, -1.0,
-                              0.0, 1.0, 0.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0, 0.0, -1.0, 
-                              0.0, 0.0, 0.0, 0.0, 0.0])
-
     unittest.main()
