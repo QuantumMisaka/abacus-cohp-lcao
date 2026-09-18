@@ -560,10 +560,10 @@ if __name__ == "__main__":
     class ReadAbacusOutTest(unittest.TestCase):
 
         def test_unit_conversion(self):
-            self.assertAlmostEqual(unit_conversion(1.0, "eV", "Ry"), 1/13.6)
-            self.assertAlmostEqual(unit_conversion(1.0, "Ry", "eV"), 13.6)
-            self.assertAlmostEqual(unit_conversion(1.0, "eV", "Hartree"), 1/27.2)
-            self.assertAlmostEqual(unit_conversion(1.0, "Hartree", "eV"), 27.2)
+            self.assertAlmostEqual(unit_conversion(1.0, "eV", "Ry"), 1/RY_TO_EV)
+            self.assertAlmostEqual(unit_conversion(1.0, "Ry", "eV"), RY_TO_EV)
+            self.assertAlmostEqual(unit_conversion(1.0, "eV", "Hartree"), 1/(2*RY_TO_EV))
+            self.assertAlmostEqual(unit_conversion(1.0, "Hartree", "eV"), 2*RY_TO_EV)
             self.assertAlmostEqual(unit_conversion(1.0, "eV", "meV"), 1e3)
             self.assertAlmostEqual(unit_conversion(1.0, "meV", "eV"), 1e-3)
             self.assertAlmostEqual(unit_conversion(1.0, "eV", "J"), 1.6e-19)
